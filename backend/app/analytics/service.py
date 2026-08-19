@@ -1,6 +1,7 @@
 import hashlib
 import json
 from collections.abc import Iterable
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -97,6 +98,10 @@ class AnalyticsService:
                 row_count=len(points),
             ),
         )
+
+    def date_range(self, session: Session, workspace_slug: str) -> tuple[date, date] | None:
+        manifest = self.workspace_registry.load(workspace_slug)
+        return self.provider_registry.create(workspace_slug).date_range(session, manifest)
 
     def _primitive_metrics(
         self,

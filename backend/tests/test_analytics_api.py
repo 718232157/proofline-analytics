@@ -35,7 +35,8 @@ def test_analytics_api_returns_metric_and_evidence() -> None:
 
     app.dependency_overrides[get_session] = override_session
     try:
-        response = TestClient(app).post(
+        client = TestClient(app)
+        response = client.post(
             "/api/workspaces/moneki/analytics/query",
             json={
                 "metric": "revenue",
@@ -43,6 +44,10 @@ def test_analytics_api_returns_metric_and_evidence() -> None:
                 "date_from": "2026-06-01",
                 "date_to": "2026-06-30",
             },
+        )
+        stream_response = client.post(
+            "/api/workspaces/moneki/assistant/chat/stream",
+            json={"question": "牛肉poke六月卖了多少钱?", "context": None},
         )
     finally:
         app.dependency_overrides.clear()
@@ -54,3 +59,9 @@ def test_analytics_api_returns_metric_and_evidence() -> None:
     assert payload["currency"] == "CNY"
     assert payload["evidence"]["processing_run_id"] == 1
     assert len(payload["evidence"]["evidence_id"]) == 16
+    assert stream_response.status_code == 200
+    assert stream_response.headers["content-type"].startswith("text/event-stream")
+    assert "event: status" in stream_response.text
+    assert "正在查询治理后的真实指标" in stream_response.text
+    assert "event: result" in stream_response.text
+    assert "牛肉poke在6月的净营业额是¥13,440.00" in stream_response.text

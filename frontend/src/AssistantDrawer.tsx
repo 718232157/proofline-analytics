@@ -1,5 +1,6 @@
-import { useRef, useState, type FormEvent } from 'react'
-import { askAssistant, type AnalysisContext, type AnalyticsQuery, type ChatResponse } from './api'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { streamAssistant, type AnalysisContext, type ChartAction, type ChatResponse } from './api'
+import { EvidenceStatus } from './EvidenceStatus'
 
 type Message =
   | { id: number; role: 'user'; text: string }
@@ -9,6 +10,7 @@ const suggestions = [
   '哪个品类的门店营业额最高？',
   '牛肉 poke 六月卖了多少钱？',
   '客单价最近是涨了还是跌了？',
+  '五家门店经营表现有什么差异？',
 ]
 
 export function AssistantDrawer({
@@ -18,13 +20,25 @@ export function AssistantDrawer({
 }: {
   open: boolean
   onClose: () => void
-  onApplyQuery: (query: AnalyticsQuery) => void
+  onApplyQuery: (action: ChartAction) => void
 }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [context, setContext] = useState<AnalysisContext | null>(null)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState('')
   const nextId = useRef(1)
+
+  useEffect(() => {
+    if (!open) return
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [open, onClose])
 
   const submit = async (question: string) => {
     const trimmed = question.trim()
@@ -34,7 +48,7 @@ export function AssistantDrawer({
     setInput('')
     setLoading(true)
     try {
-      const response = await askAssistant(trimmed, context)
+      const response = await streamAssistant(trimmed, context, setProgress)
       setMessages((current) => [...current, { id: nextId.current++, role: 'assistant', response }])
       setContext(response.context)
     } catch (error) {
@@ -55,6 +69,7 @@ export function AssistantDrawer({
       ])
     } finally {
       setLoading(false)
+      setProgress('')
     }
   }
 
@@ -70,7 +85,12 @@ export function AssistantDrawer({
         aria-label="关闭分析助手"
         onClick={onClose}
       />
-      <aside className={`assistant-drawer${open ? ' open' : ''}`} aria-hidden={!open}>
+      <aside
+        id="analysis-assistant"
+        className={`assistant-drawer${open ? ' open' : ''}`}
+        aria-label="证据分析助手"
+        aria-hidden={!open}
+      >
         <header className="drawer-header">
           <div className="drawer-title">
             <span>✦</span>
@@ -119,16 +139,17 @@ export function AssistantDrawer({
                         <strong>{citation.display_value}</strong>
                       </div>
                       <small>{formatScope(citation.scope)}</small>
-                      <code>
-                        证据 #{citation.evidence_id.slice(0, 8)} · 批次 {citation.processing_run_id}
-                      </code>
+                      <EvidenceStatus
+                        evidenceIds={citation.evidence_id}
+                        label={`真实查询已核验 · 数据批次 ${citation.processing_run_id}`}
+                      />
                     </div>
                   ))}
                   {message.response.chart_action && (
                     <button
                       className="apply-answer"
                       onClick={() => {
-                        onApplyQuery(message.response.chart_action!.query)
+                        onApplyQuery(message.response.chart_action!)
                         onClose()
                       }}
                     >
@@ -144,7 +165,7 @@ export function AssistantDrawer({
               <i />
               <i />
               <i />
-              <span>正在查询治理指标</span>
+              <span>{progress || '正在查询治理指标'}</span>
             </div>
           )}
         </div>

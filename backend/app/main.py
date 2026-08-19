@@ -1,9 +1,14 @@
+import json
+from collections.abc import Iterator
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from starlette.responses import StreamingResponse
+from starlette.staticfiles import StaticFiles
 
 from app.analytics import AnalyticsQuery, AnalyticsService, MetricResult
 from app.analytics.service import InvalidAnalyticsQuery
@@ -111,6 +116,35 @@ def create_app() -> FastAPI:
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 
+    @app.post(
+        "/api/workspaces/{workspace_slug}/assistant/chat/stream",
+        response_class=StreamingResponse,
+        tags=["assistant"],
+    )
+    async def assistant_chat_stream(
+        workspace_slug: str,
+        request: ChatRequest,
+        session: Annotated[Session, Depends(get_session)],
+    ) -> StreamingResponse:
+        def events() -> Iterator[str]:
+            yield _sse("status", {"message": "正在识别问题与经营实体"})
+            yield _sse("status", {"message": "正在查询治理后的真实指标"})
+            try:
+                response = AssistantService(WorkspaceRegistry()).answer(
+                    session, workspace_slug, request
+                )
+            except LookupError as error:
+                yield _sse("error", {"message": str(error)})
+                return
+            yield _sse("status", {"message": "数字核验完成"})
+            yield _sse("result", response.model_dump(mode="json"))
+
+        return StreamingResponse(
+            events(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     @app.get(
         "/api/workspaces/{workspace_slug}/insights",
         response_model=InsightFeed,
@@ -125,7 +159,17 @@ def create_app() -> FastAPI:
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 
+    if settings.static_dir:
+        static_path = Path(settings.static_dir).resolve()
+        if not static_path.is_dir():
+            raise RuntimeError(f"STATIC_DIR does not exist: {static_path}")
+        app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")
+
     return app
 
 
 app = create_app()
+
+
+def _sse(event: str, payload: dict[str, object]) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"

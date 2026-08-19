@@ -5,7 +5,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.analytics.models import AnalyticsQuery
 
-IntentName = Literal["category_leader", "product_revenue", "aov_trend"]
+IntentName = Literal["category_leader", "product_revenue", "aov_trend", "store_comparison"]
+ChartTarget = Literal[
+    "overview",
+    "revenue_trend",
+    "product_ranking",
+    "category_contribution",
+    "aov_trend",
+    "store_comparison",
+]
 
 
 class AnalysisContext(BaseModel):
@@ -42,6 +50,8 @@ class ChartAction(BaseModel):
 
     title: str
     query: AnalyticsQuery
+    target: ChartTarget
+    highlight: str | None = None
 
 
 class ChatResponse(BaseModel):

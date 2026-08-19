@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any
 
 from sqlalchemy import distinct, func, select
@@ -61,6 +62,15 @@ class MonekiSemanticProvider:
             )
             for row in rows
         ]
+
+    def date_range(self, session: Session, manifest: WorkspaceManifest) -> tuple[date, date] | None:
+        del manifest
+        first, last = session.execute(
+            select(func.min(MonekiSale.sale_date), func.max(MonekiSale.sale_date))
+        ).one()
+        if first is None or last is None:
+            return None
+        return first, last
 
     @staticmethod
     def _dimensions(date_grain: str) -> dict[str, Any]:

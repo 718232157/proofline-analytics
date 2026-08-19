@@ -39,10 +39,25 @@ export type AnalyticsQuery = {
 }
 
 export type AnalysisContext = {
-  intent: 'category_leader' | 'product_revenue' | 'aov_trend'
+  intent: 'category_leader' | 'product_revenue' | 'aov_trend' | 'store_comparison'
   product: string | null
   date_from: string | null
   date_to: string | null
+}
+
+export type ChartTarget =
+  | 'overview'
+  | 'revenue_trend'
+  | 'product_ranking'
+  | 'category_contribution'
+  | 'aov_trend'
+  | 'store_comparison'
+
+export type ChartAction = {
+  title: string
+  query: AnalyticsQuery
+  target: ChartTarget
+  highlight: string | null
 }
 
 export type ChatResponse = {
@@ -59,17 +74,22 @@ export type ChatResponse = {
     dimensions: Record<string, string>
     scope: string
   }[]
-  chart_action: { title: string; query: AnalyticsQuery } | null
+  chart_action: ChartAction | null
 }
 
 export type InsightFeed = {
   workspace: string
   period: string
   insights: {
-    kind: 'performance_pulse' | 'growth_driver'
+    kind: 'performance_pulse' | 'growth_driver' | 'daily_signal'
     tone: 'positive' | 'watch' | 'neutral'
+    priority: 'high' | 'medium' | 'low'
     title: string
     narrative: string
+    action: string
+    impact_display: string
+    target: 'revenue_trend' | 'product_ranking' | 'store_comparison'
+    highlight: string | null
     evidence_ids: string[]
   }[]
 }
@@ -110,6 +130,49 @@ export function askAssistant(
     body: JSON.stringify({ question, context }),
     signal,
   })
+}
+
+export async function streamAssistant(
+  question: string,
+  context: AnalysisContext | null,
+  onStatus: (message: string) => void,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/workspaces/${WORKSPACE}/assistant/chat/stream`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, context }),
+      signal,
+    },
+  )
+  if (!response.ok || !response.body) {
+    throw new Error(`请求失败 (${response.status})`)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let result: ChatResponse | null = null
+  while (true) {
+    const { done, value } = await reader.read()
+    buffer += decoder.decode(value, { stream: !done })
+    const blocks = buffer.split('\n\n')
+    buffer = blocks.pop() ?? ''
+    for (const block of blocks) {
+      const event = block.match(/^event: (.+)$/m)?.[1]
+      const data = block.match(/^data: (.+)$/m)?.[1]
+      if (!event || !data) continue
+      const payload = JSON.parse(data) as { message?: string } | ChatResponse
+      if (event === 'status' && 'message' in payload && payload.message) onStatus(payload.message)
+      if (event === 'error' && 'message' in payload) throw new Error(payload.message)
+      if (event === 'result') result = payload as ChatResponse
+    }
+    if (done) break
+  }
+  if (!result) throw new Error('分析服务未返回结果')
+  return result
 }
 
 export function getInsights(signal?: AbortSignal) {

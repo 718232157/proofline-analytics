@@ -25,8 +25,18 @@ def test_insights_decompose_growth_with_governed_metrics() -> None:
         feed = InsightService(registry).generate(session, "moneki")
 
     assert feed.period == "2026-07"
-    assert feed.insights[0].title == "2026-07 营业额增长 14.41%"
-    assert "订单数增长12.01%" in feed.insights[0].narrative
-    assert "客单价增长2.15%" in feed.insights[0].narrative
-    assert "订单量驱动" in feed.insights[0].narrative
-    assert len(feed.insights[0].evidence_ids) == 3
+    by_kind = {insight.kind: insight for insight in feed.insights}
+    daily = by_kind["daily_signal"]
+    pulse = by_kind["performance_pulse"]
+    driver = by_kind["growth_driver"]
+    assert daily.kind == "daily_signal"
+    assert daily.title == "7月31日经营处于正常区间"
+    assert "最近4个同星期日中位数" in daily.narrative
+    assert daily.target == "revenue_trend"
+    assert pulse.title == "2026-07 营业额增长 14.41%"
+    assert "订单数增长12.01%" in pulse.narrative
+    assert "客单价增长2.15%" in pulse.narrative
+    assert "订单量驱动" in pulse.narrative
+    assert len(pulse.evidence_ids) == 3
+    assert driver.kind == "growth_driver"
+    assert driver.highlight == "三文鱼poke"
