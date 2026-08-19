@@ -69,6 +69,16 @@ pnpm dev
 
 Backend health check: `GET http://localhost:8000/api/health`
 
+Raw workspace ingestion is deliberately separate from cleaning:
+
+```bash
+cd backend
+python -m app.cli ingest --workspace moneki
+```
+
+The command validates `workspaces/moneki/workspace.toml`, imports all 12,156
+source rows with provenance, and replaces the previous raw run atomically.
+
 ## Delivery contract
 
 - [ ] Public GitHub repository with meaningful development history
