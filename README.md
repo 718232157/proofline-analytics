@@ -61,24 +61,18 @@ DEMO.md           Evidence-backed written product demonstration
 
 ## Local development
 
-The final submission will provide a three-step startup path. During the
-foundation milestone, applications can be started independently:
+Prerequisites: Python 3.11+, Node.js 24+, and pnpm 11+. From a fresh machine,
+the complete product runs in three steps:
 
 ```bash
-# Backend (Python 3.12+)
-cd backend
-python -m venv .venv
-# Activate the environment, then:
-pip install -e ".[dev]"
-uvicorn app.main:app --reload
-
-# Frontend (Node 24+, pnpm 11+)
-cd frontend
-pnpm install
-pnpm dev
+git clone https://github.com/718232157/proofline-analytics.git && cd proofline-analytics
+python scripts/setup.py
+python scripts/dev.py
 ```
 
-Backend health check: `GET http://localhost:8000/api/health`
+Setup installs dependencies from the lockfile, ingests all raw CSV rows, and
+runs the audited canonicalization policy. Open `http://localhost:5173`.
+Backend health check: `GET http://localhost:8000/api/health`.
 
 Governed analytics are exposed through one contract rather than dashboard-only
 queries:
@@ -115,7 +109,8 @@ intent resolver creates a semantic query at runtime, and tests compare every
 answer citation with the canonical database result. Unsupported questions
 return a scoped refusal.
 
-Raw workspace ingestion is deliberately separate from cleaning:
+For pipeline development, raw ingestion remains deliberately separate from
+cleaning:
 
 ```bash
 cd backend

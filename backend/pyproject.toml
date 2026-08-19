@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "proofline-api"
 version = "0.1.0"
 description = "Evidence-first analytics and grounded AI API"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.116,<1",
   "httpx>=0.28,<1",
@@ -32,7 +32,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
@@ -43,6 +43,6 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 "tests/test_assistant_service.py" = ["RUF001"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 strict = true
 plugins = ["pydantic.mypy"]

@@ -2,10 +2,13 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class NormalizedValue[T]:
+class NormalizedValue(Generic[T]):
     value: T | None
     repair_reason: str | None = None
 
