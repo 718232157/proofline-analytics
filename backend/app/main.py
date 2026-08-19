@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.analytics import AnalyticsQuery, AnalyticsService, MetricResult
 from app.analytics.service import InvalidAnalyticsQuery
 from app.core.config import get_settings
+from app.quality import QualityService, QualitySummary
 from app.storage.database import get_session
 from app.workspaces import WorkspaceRegistry
 from app.workspaces.models import WorkspaceManifest
@@ -70,6 +71,20 @@ def create_app() -> FastAPI:
             return AnalyticsService(WorkspaceRegistry()).query(session, workspace_slug, query)
         except InvalidAnalyticsQuery as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.get(
+        "/api/workspaces/{workspace_slug}/quality/summary",
+        response_model=QualitySummary,
+        tags=["quality"],
+    )
+    async def quality_summary(
+        workspace_slug: str,
+        session: Annotated[Session, Depends(get_session)],
+    ) -> QualitySummary:
+        try:
+            return QualityService().summary(session, workspace_slug)
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_version: str = "0.1.0"
     database_url: str = "sqlite:///./var/proofline.db"
-    frontend_origins: str = "http://localhost:5173"
+    frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     llm_api_key: str | None = Field(default=None, repr=False)
     llm_base_url: str = "https://api.deepseek.com"
     llm_model: str = "deepseek-chat"

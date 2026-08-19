@@ -11,7 +11,7 @@ The restaurant assignment is implemented as the first complete workspace,
 `moneki`; it is a production-shaped example rather than hard-coded product
 logic.
 
-> Current milestone: auditable canonical data layer. Each milestone is
+> Current milestone: evidence-linked operator dashboard. Each milestone is
 > committed as a runnable, reviewable increment.
 
 ## Why this is not a generic chat-with-CSV demo
@@ -35,6 +35,11 @@ logic.
 - Evidence cards showing filters, metric definitions, and query results
 - Follow-up questions and one-click synchronization from chat to dashboard
 - A visible ledger for repaired, deduplicated, and quarantined records
+
+The current dashboard already delivers shared date filtering, governed KPI
+cards, daily revenue trend, Top 10 product ranking, store-category contribution,
+and an auditable quality summary. Charts are loaded as a separate bundle so the
+application shell remains fast on first load.
 
 ## Repository layout
 
