@@ -1,96 +1,89 @@
-# 全栈开发工程师（AI 产品）— 实操作业
+# Proofline Analytics
 
-## 时间
+**Evidence-first analytics for questions that cannot afford invented numbers.**
 
-**24 小时**，从收到本文件起算。到点交，做到哪算哪。
+Proofline is a reusable analytics platform for relational CSV and database
+workspaces. It combines data-quality auditing, a governed metric layer, an
+operator dashboard, and natural-language analysis whose answers remain tied to
+deterministic query results.
 
-## 背景
+The restaurant assignment is implemented as the first complete workspace,
+`moneki`; it is a production-shaped example rather than hard-coded product
+logic.
 
-我们是一家连锁餐饮公司，旗下 5 家门店。数据从 POS 系统真实导出（已脱敏），是**三张关联的表**：
+> Current milestone: project foundation. Each milestone is committed as a
+> runnable, reviewable increment.
 
-**`sales.csv`（销售流水，约 1.2 万行）**
-| order_id | date | store_id | product_id | qty | amount | payment |
-|---|---|---|---|---|---|---|
-| 订单号 | 日期 | 门店外键 | 商品外键 | 数量 | 金额 | 支付方式 |
+## Why this is not a generic chat-with-CSV demo
 
-**`stores.csv`（门店维表）**：store_id / store_name / category / district
-**`products.csv`（商品维表）**：product_id / product_name / product_category / unit_price
+1. **Evidence before eloquence** — every AI number must originate from a
+   validated metric tool and include its scope.
+2. **Raw data is immutable** — repairs and exclusions are recorded instead of
+   silently rewriting source files.
+3. **One semantic contract** — dashboard, API, AI tools, and tests share metric
+   and dimension definitions.
+4. **Workspace-driven** — new domains provide manifests, joins, cleaning rules,
+   metrics, and labels without changing the platform core.
+5. **Useful failure** — unsupported questions explain the data boundary and
+   never guess.
 
-> ⚠️ 注意：`sales.csv` 里只有 `store_id` / `product_id` **外键**，门店名、商品名、品类要 **JOIN** 另两张表才拿得到。
-> 生产导出的真实数据，不是干净样例——**含重复、缺失、格式不一、以及指向不存在门店/商品的脏外键**，请自行判断如何处理。
+## Planned Moneki experience
 
-任务分 **三关**。按顺序做，**做扎实一关再进下一关**——第一关完成度高的半成品，好过三关全是壳。
+- Daily revenue, order count, average order value, and refund visibility
+- Revenue trend and Top 10 product analysis with store/date filters
+- Natural-language questions backed by governed analytics tools
+- Evidence cards showing filters, metric definitions, and query results
+- Follow-up questions and one-click synchronization from chat to dashboard
+- A visible ledger for repaired, deduplicated, and quarantined records
 
----
+## Repository layout
 
-## 第一关：数据看板（基础）
+```text
+backend/          Generic ingestion, semantic metrics, AI tools, and API
+frontend/         Metadata-driven React analytics experience
+workspaces/       Domain manifests and workspace-specific policy
+data/             Assignment-provided, immutable Moneki POS exports
+docs/             Architecture decisions and original assignment brief
+AI_USAGE.md       Transparent AI-assisted development log
+DEMO.md           Evidence-backed written product demonstration
+```
 
-1. **后端 API**：按日期区间返回每日营业额、订单数、客单价
-2. **前端**：日期筛选 + 营业额趋势图 + Top 10 商品表
-3. `README.md`：3 步内跑起来
+## Local development
 
-## 第二关：AI 数据问答（核心）
+The final submission will provide a three-step startup path. During the
+foundation milestone, applications can be started independently:
 
-在看板里加一个**对话框**，运营可以用自然语言问数据问题，AI 用**这份数据里的真实数字**回答：
+```bash
+# Backend (Python 3.12+)
+cd backend
+python -m venv .venv
+# Activate the environment, then:
+pip install -e ".[dev]"
+uvicorn app.main:app --reload
 
-- 「哪个品类的门店营业额最高？」（要 JOIN 门店表）
-- 「牛肉poke 六月卖了多少钱？」（要 JOIN 商品表）
-- 「客单价最近是涨了还是跌了？」
+# Frontend (Node 24+, pnpm 11+)
+cd frontend
+pnpm install
+pnpm dev
+```
 
-**硬性要求：**
+Backend health check: `GET http://localhost:8000/api/health`
 
-- 回答里的数字必须**来自你的 API / 数据库的真实查询结果**，不能让大模型凭 CSV 原文瞎编。我们会拿你第一关的接口数字对照你 AI 的回答——**对不上就算这关失败**
-- 处理"AI 答不了的问题"（比如问了数据里没有的东西），要有合理的兜底而不是编造
-- 大模型随便用哪家（DeepSeek/OpenAI/Claude/通义…都行）。如果没有 API key，用 DeepSeek（几块钱人民币能跑完全程）；实在没有条件，可以 mock 大模型响应，但工具调用链路必须是真的，并在 README 说明
+## Delivery contract
 
-## 第三关：让它可信（进阶，能做多少做多少）
+- [ ] Public GitHub repository with meaningful development history
+- [ ] Three-step startup and architecture diagram in this README
+- [ ] Auditable data policy and golden metric tests
+- [ ] AI answers whose numbers match database results
+- [ ] `AI_USAGE.md` with real prompts, failures, and human-owned decisions
+- [ ] `DEMO.md` with required questions and verifiable evidence
 
-任选，多做多得：
+## Source and attribution
 
-- **对话追问**：支持上下文（「那五月呢？」要能知道"那"指什么）
-- **AI 回答的自动化测试**：写一组测试用例证明"AI 回答的数字 = 数据库查出的数字"，跑给我们看
-- **图表联动**：AI 回答问题时，前端图表跳转到对应区间/门店
-- **流式输出**、部署上线、门店对比视图……你觉得能打动我们的都行
+The `moneki` workspace implements the public
+[Moneki full-stack assignment](https://github.com/MorrisPRC/moneki-fullstack-assignment).
+Its anonymized CSV files are retained as the immutable source layer.
 
----
+## License
 
-## 必交文件
-
-1. **代码托管在 GitHub（必须 public 公开开源）**，完成后把**仓库链接**发给我们
-2. `README.md`：跑起来的步骤 + 你的架构图（手画拍照都行）+ 选型理由
-3. `AI_USAGE.md`：
-   - 用了哪些 AI 工具，怎么拆任务（给一个真实 prompt 例子）
-   - **AI 在哪里出了错 / 编造了数字，你怎么发现、怎么修的**
-   - 哪些部分你决定自己写，为什么
-4. **`DEMO.md` 或 1-3 分钟录屏**：展示你问了 AI 哪三个问题、它答了什么、数字为什么可信
-
-## 🏆 额外奖励（加分，上不封顶的地方在这里）
-
-作业本身 60 分是"及格线思维"，但我们真正想找的是**能给产品带来惊喜的人**。以下不设分值上限，做得出彩我们会在电话和最终评定里显著加权：
-
-- **UI / 交互设计**：不是套个组件库就行。信息层级清晰、看板一眼看懂经营状况、有你自己的审美判断——运营愿意每天打开的那种
-- **创新功能**：题目没要求、但你觉得"如果我是老板会想要"的功能。比如异常销售预警、AI 主动给经营建议、自然语言直接生成图表、多店对比洞察……**让我们眼前一亮的东西**
-- 我们会为最出彩的 UI 和最有价值的创新功能**单独设奖**
-
-> 提示：把第一关做到 100 分不如把第二关做通再加一个亮点。我们记住的是"那个做了 XX 的人"，不是"那个把需求都实现了的人"。
-
-## Commit 要求
-
-按开发过程分次提交。我们会看提交历史还原你的工作方式——**一个 "finish" commit 的仓库直接不看**。
-
-## 评分（作业部分 60 分）
-
-| 维度 | 分 |
-|---|---|
-| 第一关：能跑 + 数字对 | 18 |
-| 第二关：AI 问答真实取数 | 20 |
-| 第三关：进阶项 | 8 |
-| Git 过程 + 工程规范 | 7 |
-| AI_USAGE 透明度 | 7 |
-
-（面试 40 分，总分 100）
-
-## 最后
-
-- 需求模糊处自己拍板，README 里写明就行
-- 我们全团队都用 Claude Code 开发，**用 AI 不扣分，被 AI 骗了没发现才扣分**
+MIT. See [LICENSE](LICENSE).

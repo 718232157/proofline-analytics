@@ -1,0 +1,94 @@
+[workspace]
+slug = "moneki"
+name = "Moneki Operations"
+description = "Five-store restaurant operations workspace"
+locale = "zh-CN"
+currency = "CNY"
+timezone = "Asia/Shanghai"
+
+[[sources]]
+name = "sales"
+kind = "csv"
+path = "data/sales.csv"
+role = "fact"
+
+[[sources]]
+name = "stores"
+kind = "csv"
+path = "data/stores.csv"
+role = "dimension"
+
+[[sources]]
+name = "products"
+kind = "csv"
+path = "data/products.csv"
+role = "dimension"
+
+[[relations]]
+from = "sales.store_id"
+to = "stores.store_id"
+cardinality = "many_to_one"
+
+[[relations]]
+from = "sales.product_id"
+to = "products.product_id"
+cardinality = "many_to_one"
+
+[[dimensions]]
+key = "date"
+label = "日期"
+data_type = "date"
+
+[[dimensions]]
+key = "store"
+label = "门店"
+data_type = "entity"
+
+[[dimensions]]
+key = "store_category"
+label = "门店品类"
+data_type = "category"
+
+[[dimensions]]
+key = "product"
+label = "商品"
+data_type = "entity"
+
+[[dimensions]]
+key = "product_category"
+label = "商品品类"
+data_type = "category"
+
+[[metrics]]
+key = "revenue"
+label = "营业额"
+kind = "sum"
+field = "amount_cents"
+format = "currency"
+description = "有效销售与退款的净额；退款以负数扣减。"
+
+[[metrics]]
+key = "order_count"
+label = "订单数"
+kind = "count_distinct"
+field = "order_id"
+format = "integer"
+description = "有效记录中的唯一订单号数量。"
+
+[[metrics]]
+key = "average_order_value"
+label = "客单价"
+kind = "ratio"
+numerator = "revenue"
+denominator = "order_count"
+format = "currency"
+description = "净营业额除以唯一订单数。"
+
+[[suggested_questions]]
+text = "哪个品类的门店营业额最高？"
+
+[[suggested_questions]]
+text = "牛肉 poke 六月卖了多少钱？"
+
+[[suggested_questions]]
+text = "客单价最近是涨了还是跌了？"
