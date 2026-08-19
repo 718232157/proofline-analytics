@@ -38,6 +38,30 @@ export type AnalyticsQuery = {
   limit?: number
 }
 
+export type AnalysisContext = {
+  intent: 'category_leader' | 'product_revenue' | 'aov_trend'
+  product: string | null
+  date_from: string | null
+  date_to: string | null
+}
+
+export type ChatResponse = {
+  status: 'answered' | 'unsupported'
+  answer: string
+  context: AnalysisContext | null
+  citations: {
+    evidence_id: string
+    processing_run_id: number
+    metric: string
+    label: string
+    value: number
+    display_value: string
+    dimensions: Record<string, string>
+    scope: string
+  }[]
+  chart_action: { title: string; query: AnalyticsQuery } | null
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 const WORKSPACE = import.meta.env.VITE_WORKSPACE_SLUG ?? 'moneki'
 
@@ -61,4 +85,17 @@ export function queryMetric(query: AnalyticsQuery, signal?: AbortSignal) {
 
 export function getQualitySummary(signal?: AbortSignal) {
   return request<QualitySummary>(`/api/workspaces/${WORKSPACE}/quality/summary`, { signal })
+}
+
+export function askAssistant(
+  question: string,
+  context: AnalysisContext | null,
+  signal?: AbortSignal,
+) {
+  return request<ChatResponse>(`/api/workspaces/${WORKSPACE}/assistant/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, context }),
+    signal,
+  })
 }

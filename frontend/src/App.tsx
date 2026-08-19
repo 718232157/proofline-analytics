@@ -1,6 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { getQualitySummary, queryMetric, type MetricResult, type QualitySummary } from './api'
+import { AssistantDrawer } from './AssistantDrawer'
+import {
+  getQualitySummary,
+  queryMetric,
+  type AnalyticsQuery,
+  type MetricResult,
+  type QualitySummary,
+} from './api'
 
 const TrendChart = lazy(() => import('./charts').then((module) => ({ default: module.TrendChart })))
 const ProductsChart = lazy(() =>
@@ -35,6 +42,7 @@ function App() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [assistantOpen, setAssistantOpen] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -110,9 +118,9 @@ function App() {
           <a className="nav-item" href="#quality">
             <span>✓</span>数据质量
           </a>
-          <a className="nav-item" href="#assistant">
+          <button className="nav-item" onClick={() => setAssistantOpen(true)}>
             <span>✦</span>分析助手
-          </a>
+          </button>
         </nav>
         <div className="workspace-card">
           <span className="workspace-avatar">M</span>
@@ -317,11 +325,23 @@ function App() {
             <p>分析助手只会引用上面的治理指标，不会绕过口径自由生成数字。</p>
           </div>
           <div className="question-chips">
-            <button>哪个品类营业额最高？</button>
-            <button>牛肉 poke 六月卖了多少？</button>
+            <button onClick={() => setAssistantOpen(true)}>哪个品类营业额最高？</button>
+            <button onClick={() => setAssistantOpen(true)}>牛肉 poke 六月卖了多少？</button>
           </div>
         </section>
       </main>
+      <AssistantDrawer
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        onApplyQuery={(query: AnalyticsQuery) => {
+          if (query.date_from && query.date_to) {
+            setDateFrom(query.date_from)
+            setDateTo(query.date_to)
+            setAppliedRange({ from: query.date_from, to: query.date_to })
+          }
+          document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' })
+        }}
+      />
     </div>
   )
 }

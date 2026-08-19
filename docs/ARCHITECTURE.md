@@ -93,6 +93,12 @@ submission reproducible without credentials while preserving the exact same
 database-backed tool path. Model timeout, malformed output, unsupported intent,
 or out-of-scope questions fail closed instead of producing an ungrounded answer.
 
+The assistant returns a typed `ChartAction` next to its citations. The client
+applies that same validated query scope to the dashboard, so conversation and
+visual exploration stay synchronized rather than becoming separate sources of
+truth. Follow-up context is explicit request/response data, not hidden server
+memory, which keeps sessions portable and testable.
+
 ## External design references
 
 - [Vanna](https://github.com/vanna-ai/vanna): tool execution, auditability, and structured results

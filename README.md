@@ -38,8 +38,11 @@ logic.
 
 The current dashboard already delivers shared date filtering, governed KPI
 cards, daily revenue trend, Top 10 product ranking, store-category contribution,
-and an auditable quality summary. Charts are loaded as a separate bundle so the
-application shell remains fast on first load.
+an auditable quality summary, and a conversational evidence drawer. Assistant
+answers can synchronize their date scope back to every dashboard panel; follow-up
+questions retain the prior product while changing only the requested month.
+Charts are loaded as a separate bundle so the application shell remains fast on
+first load.
 
 ## Repository layout
 
