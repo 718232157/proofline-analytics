@@ -41,6 +41,9 @@ cards, daily revenue trend, Top 10 product ranking, store-category contribution,
 an auditable quality summary, and a conversational evidence drawer. Assistant
 answers can synchronize their date scope back to every dashboard panel; follow-up
 questions retain the prior product while changing only the requested month.
+The proactive “经营脉搏” feed decomposes the latest monthly change into order
+volume versus average-order-value contribution and identifies the largest
+product revenue increment, again with semantic evidence IDs.
 Charts are loaded as a separate bundle so the application shell remains fast on
 first load.
 

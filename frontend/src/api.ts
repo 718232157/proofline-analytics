@@ -62,6 +62,18 @@ export type ChatResponse = {
   chart_action: { title: string; query: AnalyticsQuery } | null
 }
 
+export type InsightFeed = {
+  workspace: string
+  period: string
+  insights: {
+    kind: 'performance_pulse' | 'growth_driver'
+    tone: 'positive' | 'watch' | 'neutral'
+    title: string
+    narrative: string
+    evidence_ids: string[]
+  }[]
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 const WORKSPACE = import.meta.env.VITE_WORKSPACE_SLUG ?? 'moneki'
 
@@ -98,4 +110,8 @@ export function askAssistant(
     body: JSON.stringify({ question, context }),
     signal,
   })
+}
+
+export function getInsights(signal?: AbortSignal) {
+  return request<InsightFeed>(`/api/workspaces/${WORKSPACE}/insights`, { signal })
 }

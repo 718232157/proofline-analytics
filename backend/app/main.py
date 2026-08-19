@@ -9,6 +9,7 @@ from app.analytics import AnalyticsQuery, AnalyticsService, MetricResult
 from app.analytics.service import InvalidAnalyticsQuery
 from app.assistant import AssistantService, ChatRequest, ChatResponse
 from app.core.config import get_settings
+from app.insights import InsightFeed, InsightService
 from app.quality import QualityService, QualitySummary
 from app.storage.database import get_session
 from app.workspaces import WorkspaceRegistry
@@ -101,6 +102,20 @@ def create_app() -> FastAPI:
     ) -> ChatResponse:
         try:
             return AssistantService(WorkspaceRegistry()).answer(session, workspace_slug, request)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.get(
+        "/api/workspaces/{workspace_slug}/insights",
+        response_model=InsightFeed,
+        tags=["insights"],
+    )
+    async def proactive_insights(
+        workspace_slug: str,
+        session: Annotated[Session, Depends(get_session)],
+    ) -> InsightFeed:
+        try:
+            return InsightService(WorkspaceRegistry()).generate(session, workspace_slug)
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 

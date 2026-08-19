@@ -3,10 +3,12 @@ import './App.css'
 import { AssistantDrawer } from './AssistantDrawer'
 import {
   getQualitySummary,
+  getInsights,
   queryMetric,
   type AnalyticsQuery,
   type MetricResult,
   type QualitySummary,
+  type InsightFeed,
 } from './api'
 
 const TrendChart = lazy(() => import('./charts').then((module) => ({ default: module.TrendChart })))
@@ -22,6 +24,7 @@ type DashboardData = {
   products: MetricResult
   categories: MetricResult
   quality: QualitySummary
+  insights: InsightFeed
 }
 
 const currency = new Intl.NumberFormat('zh-CN', {
@@ -63,9 +66,10 @@ function App() {
       ),
       queryMetric({ metric: 'revenue', group_by: ['store_category'], ...scope }, controller.signal),
       getQualitySummary(controller.signal),
+      getInsights(controller.signal),
     ])
-      .then(([revenue, orders, aov, trend, products, categories, quality]) => {
-        setData({ revenue, orders, aov, trend, products, categories, quality })
+      .then(([revenue, orders, aov, trend, products, categories, quality, insights]) => {
+        setData({ revenue, orders, aov, trend, products, categories, quality, insights })
       })
       .catch((requestError: unknown) => {
         if (controller.signal.aborted) return
@@ -316,6 +320,30 @@ function App() {
               ))}
             </div>
           </article>
+        </section>
+
+        <section className="insight-feed" aria-label="主动经营洞察">
+          <header>
+            <div>
+              <p className="eyebrow">PROACTIVE SIGNALS</p>
+              <h2>经营脉搏</h2>
+            </div>
+            <span>基于 {data?.insights?.period ?? '最新完整月份'}</span>
+          </header>
+          <div className="insight-cards">
+            {(data?.insights?.insights ?? []).map((insight) => (
+              <article className={`insight-card ${insight.tone}`} key={insight.kind}>
+                <span className="insight-symbol">
+                  {insight.kind === 'performance_pulse' ? '↗' : '◎'}
+                </span>
+                <div>
+                  <strong>{insight.title}</strong>
+                  <p>{insight.narrative}</p>
+                  <code>{insight.evidence_ids.map((id) => `#${id.slice(0, 6)}`).join(' · ')}</code>
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section className="assistant-strip" id="assistant">

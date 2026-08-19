@@ -99,6 +99,15 @@ visual exploration stay synchronized rather than becoming separate sources of
 truth. Follow-up context is explicit request/response data, not hidden server
 memory, which keeps sessions portable and testable.
 
+## ADR-006: Deterministic proactive insights before generated advice
+
+**Status:** Accepted
+
+Proofline computes month-over-month performance decomposition and product
+growth drivers from governed metric results. The algorithm, inputs, and evidence
+IDs are inspectable. An LLM may later explain or prioritize these findings, but
+it is not used to discover numerical patterns that deterministic code can prove.
+
 ## External design references
 
 - [Vanna](https://github.com/vanna-ai/vanna): tool execution, auditability, and structured results
