@@ -1,29 +1,112 @@
-# Proofline Analytics — Evidence-backed Demo
+# Proofline Analytics — 可复核文字演示
 
-This written demo is the required product walkthrough for the `moneki`
-workspace. Final screenshots and API evidence are added only after the relevant
-flows pass automated acceptance tests.
+本文件替代录屏，完整展示 Moneki 作业要求的三问、上下文追问和越界兜底。
+所有金额均由 canonical 数据上的同一个语义 API 计算；证据 ID 会包含本地
+`processing_run_id`，因此每次重新导入后 ID 会变化，但下列黄金值不会变化。
 
-## Acceptance scenarios
+## 演示前准备
 
-| Scenario | Business question | Capability demonstrated | Evidence required |
-| --- | --- | --- | --- |
-| 1 | 哪个品类的门店营业额最高？ | Store dimension join and ranking | Tool arguments, grouped database result, final answer |
-| 2 | 牛肉 poke 六月卖了多少钱？ | Product dimension join and date filtering | Tool arguments, amount and order count, API comparison |
-| 3 | 客单价最近是涨了还是跌了？ | Time-series comparison and interpretation | Monthly values, direction calculation, chart state |
-| 4 | 那五月呢？ | Conversational follow-up | Previous context and resolved date range |
-| 5 | 去年北京门店利润是多少？ | Unsupported question handling | Explicit data-boundary response with no invented number |
+```bash
+python scripts/setup.py
+python scripts/dev.py
+```
 
-## Required proof for every successful answer
+打开 `http://localhost:5173`，点击左侧“分析助手”。无需 API key；本地意图解析器
+仍会在运行时创建真实 `AnalyticsQuery` 并查询数据库。配置兼容模型后，模型也只能
+返回 `{intent, product, month}`，不能生成金额。
 
-1. Exact user question and complete AI response
-2. Validated tool name and structured arguments
-3. Applied workspace, date, dimensions, and metric definition
-4. Deterministic database result returned to the model
-5. Comparison with the equivalent analytics API result
-6. Automated test preventing regression
+## 问题一：门店品类 JOIN 与排名
 
-## Demo status
+**提问**
 
-Implementation has not reached the demo milestone. Placeholder answers are
-intentionally omitted so this document cannot imply unverified behavior.
+> 哪个品类的门店营业额最高？
+
+**回答**
+
+> 营业额最高的门店品类是日料，净营业额为 ¥88,347.00。
+
+**为什么可信**
+
+- 工具查询：`metric=revenue`, `group_by=[store_category]`
+- JOIN 路径：`moneki_sales.store_id → moneki_stores.store_id`
+- 数据库按品类返回五组结果，“日料”最大，原始证据值为 `8,834,700` 分
+- 回答证据卡展示本次处理批次和证据 ID；同一证据也驱动看板“门店品类贡献”
+
+## 问题二：商品 JOIN 与日期过滤
+
+**提问**
+
+> 牛肉 poke 六月卖了多少钱？
+
+**回答**
+
+> 牛肉poke在 6 月的净营业额是 ¥13,440.00。
+
+**为什么可信**
+
+- 工具查询：`metric=revenue`, `product=牛肉poke`,
+  `date=2026-06-01..2026-06-30`
+- JOIN 路径：`moneki_sales.product_id → moneki_products.product_id`
+- 数据库证据值为 `1,344,000` 分
+- 回答后前端把整个看板同步到六月；六月总营业额同时变为 ¥132,440.00、
+  有效订单变为 3,789，说明对话和看板使用同一筛选范围
+
+## 问题三：派生指标与趋势解释
+
+**提问**
+
+> 客单价最近是涨了还是跌了？
+
+**回答**
+
+> 客单价最近回升：从 2026-06 的 ¥34.95 变为 2026-07 的 ¥35.70，
+> 变动 2.15%。
+
+**为什么可信**
+
+- 工具查询：`metric=average_order_value`, `group_by=[date]`, `date_grain=month`
+- 统一定义：`净营业额 ÷ 唯一有效订单数`
+- 六月：`13,244,000 分 ÷ 3,789 = 3,495.38 分`，展示为 ¥34.95
+- 七月：`15,152,700 分 ÷ 4,244 = 3,570.38 分`，展示为 ¥35.70
+- 趋势词“回升”和 2.15% 变化均由代码计算，不由模型判断数字
+
+## 进阶一：上下文追问 + 图表联动
+
+在问题二后继续问：
+
+> 那五月呢？
+
+回答为：
+
+> 牛肉poke在 5 月的净营业额是 ¥13,020.00。
+
+请求只传回上一轮的显式上下文 `{intent: product_revenue, product: 牛肉poke}`；
+解析器把月份改为五月，商品保持不变。看板日期随即同步为
+`2026-05-01..2026-05-31`。黄金测试曾拦截一个 AI 擅自写入的错误预期值
+¥13,692，详见 `AI_USAGE.md`。
+
+## 进阶二：答不了就明确拒绝
+
+**提问**
+
+> 下个月天气会影响多少营业额？
+
+**回答**
+
+> 这个问题超出了当前数据范围。我只能基于已治理的日期、门店、品类、商品、
+> 营业额、订单数和客单价回答；不会用常识补造数据。
+
+该响应状态为 `unsupported`，`citations=[]`，也不会生成图表动作。
+
+## 自动化证明
+
+`backend/tests/test_assistant_service.py` 把上述三问、追问和拒答全部跑在完整 CSV
+生成的内存数据库上，直接断言回答中的 evidence value。更底层的
+`test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及
+每月总额。CI 在测试覆盖率低于 90% 时失败。
+
+```bash
+cd backend
+.venv/Scripts/python -m pytest --cov=app --cov-fail-under=90  # Windows
+# .venv/bin/python -m pytest --cov=app --cov-fail-under=90    # macOS/Linux
+```

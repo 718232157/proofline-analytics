@@ -20,21 +20,6 @@ where it failed, and which decisions remained human-owned.
 6. Prove answer-to-database consistency with golden tests.
 7. Build product interactions around evidence, not a generic chat box.
 
-### Prompt 003 — grounded assistant boundary
-
-> Build the AI question-answering layer so the model can interpret language but
-> can never calculate, provide SQL, or introduce a numeric fact. It must support
-> the three required questions, a contextual month follow-up, and an honest
-> unsupported-question path without an API key.
-
-**Outcome:** Common intents resolve locally; optional OpenAI-compatible model
-output is constrained to `{intent, product, month}`. All answer values and
-citations are generated from the governed analytics service.
-
-**Verification:** Golden tests assert the category leader, June beef-poke
-revenue, recent AOV direction, May follow-up, evidence processing run, and
-zero-citation refusal path.
-
 ## Prompt log
 
 ### Prompt 001 — repository orientation
@@ -62,6 +47,21 @@ query validation, AI orchestration, and UI primitives remain generic.
 **Verification:** No restaurant-specific module is permitted in the platform
 core. A later architecture test will load the Moneki workspace through the same
 registry interface intended for additional workspaces.
+
+### Prompt 003 — grounded assistant boundary
+
+> Build the AI question-answering layer so the model can interpret language but
+> can never calculate, provide SQL, or introduce a numeric fact. It must support
+> the three required questions, a contextual month follow-up, and an honest
+> unsupported-question path without an API key.
+
+**Outcome:** Common intents resolve locally; optional OpenAI-compatible model
+output is constrained to `{intent, product, month}`. All answer values and
+citations are generated from the governed analytics service.
+
+**Verification:** Golden tests assert the category leader, June beef-poke
+revenue, recent AOV direction, May follow-up, evidence processing run, and
+zero-citation refusal path.
 
 ## AI failures and corrections
 
@@ -108,8 +108,11 @@ This is the exact failure mode the product architecture is designed to stop.
 
 ## Human-owned decisions
 
-- Evidence-first product positioning and reusable platform boundary
-- Data repair versus quarantine policy
-- Definitions of revenue, order count, average order value, and refunds
-- The boundary between LLM interpretation and deterministic computation
-- Final visual hierarchy, acceptance criteria, and release decisions
+| Decision kept human-owned | Why |
+| --- | --- |
+| Evidence-first product positioning and reusable platform boundary | This determines who the product serves and what trust promise it makes; it is not a code-completion choice |
+| Repair versus quarantine policy | Imputation changes business truth. Missing amounts and conflicting IDs required an explicit risk decision |
+| Revenue, order count, AOV, and refund definitions | Metric semantics are business contracts; AI may implement them but cannot choose them silently |
+| LLM versus deterministic-computation boundary | Allowing free SQL or model-generated numbers would violate the assignment’s central correctness requirement |
+| Visual hierarchy and proactive insight selection | The choice to foreground trust rate, evidence IDs, and growth decomposition reflects product judgment |
+| Final acceptance and release | Automated checks provide evidence, but a human remains accountable for whether the evidence is sufficient |

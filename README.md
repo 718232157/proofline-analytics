@@ -11,8 +11,8 @@ The restaurant assignment is implemented as the first complete workspace,
 `moneki`; it is a production-shaped example rather than hard-coded product
 logic.
 
-> Current milestone: evidence-linked operator dashboard. Each milestone is
-> committed as a runnable, reviewable increment.
+> Release candidate: complete dashboard, grounded assistant, proactive insights,
+> audited data pipeline, and written demo.
 
 ## Why this is not a generic chat-with-CSV demo
 
@@ -27,7 +27,7 @@ logic.
 5. **Useful failure** — unsupported questions explain the data boundary and
    never guess.
 
-## Planned Moneki experience
+## Delivered Moneki experience
 
 - Daily revenue, order count, average order value, and refund visibility
 - Revenue trend and Top 10 product analysis with store/date filters
@@ -46,6 +46,47 @@ volume versus average-order-value contribution and identifies the largest
 product revenue increment, again with semantic evidence IDs.
 Charts are loaded as a separate bundle so the application shell remains fast on
 first load.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    CSV[Immutable CSV sources] --> Raw[Raw ingestion + provenance]
+    Raw --> Policy[Workspace cleaning policy]
+    Policy --> Canonical[(Canonical SQLite)]
+    Policy --> Ledger[Quality event ledger]
+    Manifest[Workspace manifest] --> Policy
+    Manifest --> Semantic[Governed semantic service]
+    Canonical --> Semantic
+    Semantic --> API[FastAPI evidence API]
+    API --> Dashboard[React operator dashboard]
+    Question[Operator question] --> Resolver[Closed intent resolver]
+    Resolver -. optional phrasing .-> LLM[OpenAI-compatible LLM]
+    Resolver --> Semantic
+    Semantic --> Answer[Answer + citations + chart action]
+    Answer --> Dashboard
+```
+
+The platform core owns ingestion, validation, semantic query contracts,
+evidence envelopes, assistant orchestration, and reusable UI. A workspace owns
+source declarations, relations, labels, metric definitions, and a small domain
+policy adapter. Adding another workspace does not require restaurant logic in
+the platform core.
+
+### Technology choices
+
+| Choice | Reason |
+| --- | --- |
+| FastAPI + Pydantic | Typed request/response contracts and automatic OpenAPI without a heavy server framework |
+| SQLAlchemy + SQLite | Real relational joins, constraints, and reproducible zero-service startup for this data volume; the service boundary permits PostgreSQL later |
+| React + TypeScript + Vite | Fast, typed interaction layer with explicit loading/error states and a small application shell |
+| Recharts | Composable accessible chart primitives; loaded in a separate lazy chunk |
+| Integer cents | Exact currency aggregation without binary floating-point drift |
+| Pytest + Ruff + mypy + GitHub Actions | Executable numerical contracts, strict types, formatting, and a 90% coverage release gate |
+
+Detailed decisions are recorded in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+and every repair/quarantine rule is documented in
+[docs/DATA_QUALITY.md](docs/DATA_QUALITY.md).
 
 ## Repository layout
 
@@ -125,12 +166,12 @@ writes a row-level quality ledger. See [the data-quality contract](docs/DATA_QUA
 
 ## Delivery contract
 
-- [ ] Public GitHub repository with meaningful development history
-- [ ] Three-step startup and architecture diagram in this README
+- [x] Public GitHub repository with meaningful development history
+- [x] Three-step startup and architecture diagram in this README
 - [x] Auditable data policy and golden metric tests
-- [ ] AI answers whose numbers match database results
-- [ ] `AI_USAGE.md` with real prompts, failures, and human-owned decisions
-- [ ] `DEMO.md` with required questions and verifiable evidence
+- [x] AI answers whose numbers match database results
+- [x] `AI_USAGE.md` with real prompts, failures, and human-owned decisions
+- [x] `DEMO.md` with required questions and verifiable evidence
 
 ## Source and attribution
 
