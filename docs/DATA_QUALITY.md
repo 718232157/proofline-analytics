@@ -51,5 +51,9 @@ The same test locks the monthly net revenue and order totals:
 | 2026-06 | ¥132,440.00 | 3,789 |
 | 2026-07 | ¥151,527.00 | 4,244 |
 
+The derived monthly average order values are ¥36.35, ¥34.95, and ¥35.70 after
+display rounding. Internally, the semantic layer retains two decimal places in
+minor currency units before presentation (for example, June is 3,495.38 cents).
+
 If a future code change alters any count or total, CI fails and requires an
 explicit policy review rather than silently changing dashboard numbers.

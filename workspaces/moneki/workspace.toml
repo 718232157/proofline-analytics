@@ -6,6 +6,7 @@ locale = "zh-CN"
 currency = "CNY"
 timezone = "Asia/Shanghai"
 processor = "app.workspace_adapters.moneki.processor:MonekiProcessor"
+semantic_provider = "app.workspace_adapters.moneki.semantic:MonekiSemanticProvider"
 
 [[sources]]
 name = "sales"

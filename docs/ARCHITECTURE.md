@@ -65,6 +65,20 @@ Raw rows remain immutable. Deterministic normalization produces canonical
 records, while ambiguous or invalid records are written to a quality ledger
 with reason codes. Dashboard and AI queries use the same canonical dataset.
 
+## ADR-004: Minor currency units and evidence envelopes
+
+**Status:** Accepted
+
+Currency aggregates cross service boundaries as integer minor units. Ratio
+metrics retain two decimal places in minor units and are rounded for display by
+the client. This avoids binary floating-point drift in revenue totals while
+preserving correct average-order-value presentation.
+
+Every semantic result includes a deterministic evidence ID derived from the
+validated query and canonical processing run. It also carries the metric
+definition and filter scope, allowing the dashboard and AI layer to cite the
+same computation without exposing raw SQL.
+
 ## External design references
 
 - [Vanna](https://github.com/vanna-ai/vanna): tool execution, auditability, and structured results

@@ -13,6 +13,7 @@ class WorkspaceMetadata(BaseModel):
     currency: str = Field(min_length=3, max_length=3)
     timezone: str
     processor: str = Field(pattern=r"^[a-zA-Z0-9_.]+:[A-Za-z][A-Za-z0-9_]*$")
+    semantic_provider: str = Field(pattern=r"^[a-zA-Z0-9_.]+:[A-Za-z][A-Za-z0-9_]*$")
 
 
 class SourceDefinition(BaseModel):

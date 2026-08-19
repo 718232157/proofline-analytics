@@ -73,6 +73,15 @@ complete, but the source has no discount field and contains legitimate negative
 refunds. The human-owned decision is therefore to quarantine missing amounts,
 retain the raw row, and expose the exclusion in the quality ledger.
 
+### A plausible hand-calculated AOV was rejected
+
+The initial planning note recorded June average order value as approximately
+¥34.95, but also carried an incorrect unrounded intermediate value. The
+semantic golden test recomputed `13,244,000 cents / 3,789 orders` and failed on
+the mismatch. The contract now asserts 3,495.38 cents internally, with ¥34.95
+as the presentation-rounded value. This is why derived numbers are computed by
+the governed metric service rather than copied from prose.
+
 ## Human-owned decisions
 
 - Evidence-first product positioning and reusable platform boundary

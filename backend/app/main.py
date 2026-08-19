@@ -1,8 +1,16 @@
-from fastapi import FastAPI
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from app.analytics import AnalyticsQuery, AnalyticsService, MetricResult
+from app.analytics.service import InvalidAnalyticsQuery
 from app.core.config import get_settings
+from app.storage.database import get_session
+from app.workspaces import WorkspaceRegistry
+from app.workspaces.models import WorkspaceManifest
 
 settings = get_settings()
 
@@ -36,6 +44,34 @@ def create_app() -> FastAPI:
             version=settings.app_version,
             environment=settings.app_env,
         )
+
+    @app.get(
+        "/api/workspaces/{workspace_slug}",
+        response_model=WorkspaceManifest,
+        tags=["workspaces"],
+    )
+    async def workspace_manifest(workspace_slug: str) -> WorkspaceManifest:
+        try:
+            return WorkspaceRegistry().load(workspace_slug)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.post(
+        "/api/workspaces/{workspace_slug}/analytics/query",
+        response_model=MetricResult,
+        tags=["analytics"],
+    )
+    async def analytics_query(
+        workspace_slug: str,
+        query: AnalyticsQuery,
+        session: Annotated[Session, Depends(get_session)],
+    ) -> MetricResult:
+        try:
+            return AnalyticsService(WorkspaceRegistry()).query(session, workspace_slug, query)
+        except InvalidAnalyticsQuery as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
 
     return app
 

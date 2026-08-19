@@ -69,6 +69,24 @@ pnpm dev
 
 Backend health check: `GET http://localhost:8000/api/health`
 
+Governed analytics are exposed through one contract rather than dashboard-only
+queries:
+
+```http
+POST /api/workspaces/moneki/analytics/query
+Content-Type: application/json
+
+{
+  "metric": "revenue",
+  "filters": {"product": ["牛肉poke"]},
+  "date_from": "2026-06-01",
+  "date_to": "2026-06-30"
+}
+```
+
+The response includes values in integer minor currency units plus a stable
+evidence ID, processing-run ID, metric definition, and human-readable scope.
+
 Raw workspace ingestion is deliberately separate from cleaning:
 
 ```bash
@@ -86,7 +104,7 @@ writes a row-level quality ledger. See [the data-quality contract](docs/DATA_QUA
 
 - [ ] Public GitHub repository with meaningful development history
 - [ ] Three-step startup and architecture diagram in this README
-- [ ] Auditable data policy and golden metric tests
+- [x] Auditable data policy and golden metric tests
 - [ ] AI answers whose numbers match database results
 - [ ] `AI_USAGE.md` with real prompts, failures, and human-owned decisions
 - [ ] `DEMO.md` with required questions and verifiable evidence
