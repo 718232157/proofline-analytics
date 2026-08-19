@@ -25,7 +25,7 @@ jobs:
       - run: ruff format --check app tests ../scripts
       - run: ruff check app tests ../scripts
       - run: mypy app
-      - run: pytest --cov=app --cov-report=term-missing
+      - run: pytest --cov=app --cov-report=term-missing --cov-fail-under=90
 
   frontend:
     runs-on: ubuntu-latest

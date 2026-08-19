@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.ingestion import RawIngestionService
 from app.processing import ProcessingService
 from app.processing.registry import ProcessorRegistry
-from app.storage.models import Base, QualityEvent
+from app.storage.models import Base, ProcessingRun, QualityEvent
 from app.workspace_adapters.moneki.models import MonekiSale
 from app.workspaces import WorkspaceRegistry
 
@@ -67,6 +67,14 @@ def test_full_dataset_quality_contract_and_golden_metrics() -> None:
             ("2026-05", 13_944_600, 3_836),
             ("2026-06", 13_244_000, 3_789),
             ("2026-07", 15_152_700, 4_244),
+        ]
+
+        repeated = ProcessingService(registry).process(session, "moneki")
+        assert repeated.summary == result.summary
+        assert session.scalar(select(func.count()).select_from(MonekiSale)) == 11_869
+        assert session.scalars(select(ProcessingRun.status).order_by(ProcessingRun.id)).all() == [
+            "superseded",
+            "completed",
         ]
 
 
