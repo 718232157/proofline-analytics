@@ -1,118 +1,81 @@
-# Architecture and Decision Record
+# 架构与决策记录
 
-This document records decisions that affect correctness, operability, reuse, or
-product trust. It changes when evidence changes a decision.
+本文记录影响正确性、可运维性、复用能力或产品信任的决策；当证据改变决策时，本文也必须同步更新。
 
-## Platform and workspace boundary
+## 平台与工作空间边界
 
 ```mermaid
 flowchart LR
-    Operator[Analyst or operator] --> Web[Metadata-driven web app]
-    Web --> API[FastAPI platform API]
-    API --> Metrics[Semantic metric service]
-    API --> Agent[Grounded AI orchestrator]
-    Agent --> Tools[Validated analytics tools]
+    Operator[分析师或经营者] --> Web[元数据驱动 Web 应用]
+    Web --> API[FastAPI 平台 API]
+    API --> Metrics[语义指标服务]
+    API --> Agent[可信 AI 编排器]
+    Agent --> Tools[已校验分析工具]
     Tools --> Metrics
-    Metrics --> DB[(Workspace database)]
-    Manifest[Workspace manifest] --> Pipeline[Generic ingestion pipeline]
-    Source[CSV or database source] --> Pipeline
+    Metrics --> DB[(工作空间数据库)]
+    Manifest[工作空间清单] --> Pipeline[通用摄取管道]
+    Source[CSV 或数据库] --> Pipeline
     Pipeline --> DB
-    Pipeline --> Ledger[Quality ledger]
+    Pipeline --> Ledger[质量台账]
     Ledger --> API
     Manifest --> Metrics
     Manifest --> Web
 ```
 
-## Reuse contract
+## 复用契约
 
-The platform owns source adapters, validation primitives, evidence envelopes,
-the semantic query contract, AI orchestration, and UI components. A workspace
-owns source declarations, relations, domain cleaning rules, metrics,
-dimensions, labels, and suggested questions.
+平台负责数据源适配器、验证原语、证据封装、语义查询契约、AI 编排和界面组件。工作空间负责数据源声明、关联关系、领域清洗规则、指标、维度、标签与推荐问题。
 
-The first release supports configuration plus small Python policy hooks. It
-does not attempt a no-code ingestion builder; that would add surface area
-without improving this assignment's proof of trust.
+首个版本采用配置加少量 Python 策略钩子，不追求无代码摄取编辑器；后者会显著扩大范围，却不能增强本任务最关键的可信度证明。
 
-## ADR-001: Restricted semantic tools instead of free text-to-SQL
+## ADR-001：受限语义工具，而非自由文本转 SQL
 
-**Status:** Accepted
+**状态：已采纳**
 
-The model may interpret intent and select a tool, but it cannot provide table
-names, column names, or executable SQL. Tool arguments use metric and dimension
-identifiers registered by the active workspace. SQL remains deterministic and
-parameterized inside the metric service.
+模型可以理解意图和选择工具，但不得提供表名、列名或可执行 SQL。工具参数只能使用当前工作空间注册的指标与维度标识；SQL 始终由指标服务确定性、参数化地生成。
 
-This trades open-ended query coverage for numerical reliability, reusable
-governance, clear testing boundaries, and useful fallback behavior.
+这一选择牺牲部分开放式查询覆盖，换取数字可靠性、可复用治理、清晰测试边界和可用的降级路径。
 
-## ADR-002: SQLite behind a storage boundary
+## ADR-002：存储边界后的 SQLite
 
-**Status:** Accepted
+**状态：已采纳**
 
-The reference workspace has roughly twelve thousand fact rows. SQLite keeps
-startup reproducible, supports joins and indexes, and avoids making Docker a
-requirement for evaluation. Money is stored as integer cents.
+参考工作空间约有 1.2 万条事实记录。SQLite 支持关联和索引，可重复启动，且不强迫评审安装 Docker。货币以整数分存储。持久化经服务访问，未来可增加 PostgreSQL 适配器而无需修改 API、语义查询、证据或 AI 契约。
 
-Persistence is accessed through services so a PostgreSQL adapter can be added
-without changing API, semantic query, evidence, or AI contracts.
+## ADR-003：原始层、规范层与隔离层
 
-## ADR-003: Raw, canonical, and quarantine layers
+**状态：已采纳**
 
-**Status:** Accepted
+原始记录保持不可变；确定性标准化生成规范记录；歧义或无效记录连同原因码写入质量台账。看板与 AI 始终查询同一份规范数据。
 
-Raw rows remain immutable. Deterministic normalization produces canonical
-records, while ambiguous or invalid records are written to a quality ledger
-with reason codes. Dashboard and AI queries use the same canonical dataset.
+## ADR-004：最小货币单位与证据封装
 
-## ADR-004: Minor currency units and evidence envelopes
+**状态：已采纳**
 
-**Status:** Accepted
+货币聚合跨服务边界时使用整数最小单位。比率指标在最小单位中保留两位小数，并由客户端按展示规则舍入，避免营业额出现浮点漂移，同时正确呈现平均客单价。
 
-Currency aggregates cross service boundaries as integer minor units. Ratio
-metrics retain two decimal places in minor units and are rounded for display by
-the client. This avoids binary floating-point drift in revenue totals while
-preserving correct average-order-value presentation.
+每个语义结果都包含由已校验查询和规范处理批次生成的稳定证据 ID，以及指标定义和筛选范围。看板与 AI 因而能引用同一次计算，无需暴露原始 SQL。
 
-Every semantic result includes a deterministic evidence ID derived from the
-validated query and canonical processing run. It also carries the metric
-definition and filter scope, allowing the dashboard and AI layer to cite the
-same computation without exposing raw SQL.
+## ADR-005：模型负责理解，确定性工具负责计算
 
-## ADR-005: The model interprets; deterministic tools calculate
+**状态：已采纳**
 
-**Status:** Accepted
+可选的 OpenAI 兼容模型接收问题、上文及封闭意图结构，但不能提交 SQL 或指标值。编排器验证结构化输出、构造 `AnalyticsQuery`、执行语义服务并从结果生成引用。
 
-An optional OpenAI-compatible model receives the question, prior analysis
-context, and a closed intent schema. It cannot submit SQL or metric values. The
-orchestrator validates its structured output, constructs an `AnalyticsQuery`,
-executes the semantic service, and composes citations from that result.
+必问题目另有本地确定性解析器，确保无凭据也能复现。模型超时、输出格式错误、意图不支持或问题越界时均安全拒答，而非生成无依据结论。
 
-Required questions also have a deterministic local resolver. This makes the
-submission reproducible without credentials while preserving the exact same
-database-backed tool path. Model timeout, malformed output, unsupported intent,
-or out-of-scope questions fail closed instead of producing an ungrounded answer.
+助手同时返回强类型 `ChartAction`。客户端把同一已校验查询范围应用到看板，使对话和可视化保持同一事实来源。追问上下文通过显式请求/响应传递，不依赖隐藏服务器记忆。
 
-The assistant returns a typed `ChartAction` next to its citations. The client
-applies that same validated query scope to the dashboard, so conversation and
-visual exploration stay synchronized rather than becoming separate sources of
-truth. Follow-up context is explicit request/response data, not hidden server
-memory, which keeps sessions portable and testable.
+## ADR-006：先做确定性主动洞察，再考虑生成建议
 
-## ADR-006: Deterministic proactive insights before generated advice
+**状态：已采纳**
 
-**Status:** Accepted
+Proofline 基于治理指标计算环比表现拆解与商品增长驱动，其算法、输入和证据 ID 均可检查。未来 LLM 可以解释或排序这些发现，但不会代替确定性代码发现可证明的数字模式。
 
-Proofline computes month-over-month performance decomposition and product
-growth drivers from governed metric results. The algorithm, inputs, and evidence
-IDs are inspectable. An LLM may later explain or prioritize these findings, but
-it is not used to discover numerical patterns that deterministic code can prove.
+## 外部设计参考
 
-## External design references
+- [Vanna](https://github.com/vanna-ai/vanna)：工具执行、审计能力与结构化结果
+- [Evidence](https://github.com/evidence-dev/evidence)：SQL 支撑的证据与可复现报告
+- [Recharts](https://github.com/recharts/recharts)：可组合 React 图表原语
 
-- [Vanna](https://github.com/vanna-ai/vanna): tool execution, auditability, and structured results
-- [Evidence](https://github.com/evidence-dev/evidence): SQL-backed evidence and reproducible reporting
-- [Recharts](https://github.com/recharts/recharts): composable React chart primitives
-
-These projects inform principles only. Proofline implements an independent,
-smaller architecture and does not copy their source code.
+以上项目只提供原则参考。Proofline 使用独立、更小的架构，未复制其源代码。

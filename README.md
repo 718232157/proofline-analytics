@@ -1,111 +1,86 @@
-# Proofline Analytics
+# Proofline 可信分析
 
 [![CI](https://github.com/718232157/proofline-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/718232157/proofline-analytics/actions/workflows/ci.yml)
 
-**Evidence-first analytics for questions that cannot afford invented numbers.**
+**以证据为先，回答那些容不得编造数字的经营问题。**
 
-Proofline is a reusable analytics platform for relational CSV and database
-workspaces. It combines data-quality auditing, a governed metric layer, an
-operator dashboard, and natural-language analysis whose answers remain tied to
-deterministic query results.
+Proofline 是面向关系型 CSV 与数据库工作空间的通用可信分析平台。它把数据质量审计、治理指标层、经营看板与自然语言分析整合在一起，让每个回答都能追溯到确定性的查询结果。
 
-The restaurant assignment is implemented as the first complete workspace,
-`moneki`; it is a production-shaped example rather than hard-coded product
-logic.
+本次餐饮任务作为第一个完整工作空间 `moneki` 实现。它是可迁移的生产级示例，不是写死在产品中的一次性逻辑。
 
-> Release candidate: complete dashboard, grounded assistant, proactive insights,
-> audited data pipeline, and written demo.
+> 当前版本已交付完整看板、可信分析助手、主动洞察、可审计数据管道与文字版演示。
 
-## Why this is not a generic chat-with-CSV demo
+## 为什么它不是普通的“CSV 对话”演示
 
-1. **Evidence before eloquence** — every AI number must originate from a
-   validated metric tool and include its scope.
-2. **Raw data is immutable** — repairs and exclusions are recorded instead of
-   silently rewriting source files.
-3. **One semantic contract** — dashboard, API, AI tools, and tests share metric
-   and dimension definitions.
-4. **Workspace-driven** — new domains provide manifests, joins, cleaning rules,
-   metrics, and labels without changing the platform core.
-5. **Useful failure** — unsupported questions explain the data boundary and
-   never guess.
+1. **先证据，后表达**：AI 输出的每个数字都必须来自经过验证的指标工具，并附带查询范围。
+2. **原始数据不可变**：修复与排除都会留下记录，不会静默改写源文件。
+3. **统一语义契约**：看板、API、AI 工具和测试共享同一套指标与维度定义。
+4. **工作空间驱动**：接入新领域只需提供清单、关联关系、清洗规则、指标与标签，无需修改平台核心。
+5. **诚实地失败**：超出数据边界的问题会说明限制，绝不猜测。
 
-## Delivered Moneki experience
+## 已交付的 Moneki 体验
 
-- Daily revenue, order count, average order value, and refund visibility
-- Revenue trend and Top 10 product analysis with store/date filters
-- Natural-language questions backed by governed analytics tools
-- Evidence cards showing filters, metric definitions, and query results
-- Follow-up questions and one-click synchronization from chat to dashboard
-- A visible ledger for repaired, deduplicated, and quarantined records
+- 每日营业额、订单数、平均客单价及退款可见性
+- 支持门店和日期筛选的营业额趋势与商品前 10 分析
+- 由治理分析工具提供数字的自然语言问答
+- 展示筛选范围、指标定义与查询结果的证据卡片
+- 上下文追问，以及从回答一键同步到看板
+- 对修复、去重和隔离记录可见的质量台账
 
-The current dashboard already delivers shared date filtering, governed KPI
-cards, daily revenue trend, Top 10 product ranking, store-category contribution,
-an auditable quality summary, and a conversational evidence drawer. Assistant
-answers can synchronize their date scope back to every dashboard panel; follow-up
-questions retain the prior product while changing only the requested month.
-The proactive “经营脉搏” feed decomposes the latest monthly change into order
-volume versus average-order-value contribution and identifies the largest
-product revenue increment, again with semantic evidence IDs.
-Charts are loaded as a separate bundle so the application shell remains fast on
-first load.
+当前看板提供统一日期筛选、治理 KPI、每日营业额趋势、商品排行、门店品类贡献、可审计质量摘要及对话式证据抽屉。助手回答可将日期范围同步到全部看板；上下文追问会保留上一个商品，只修改用户指定的月份。
 
-## Architecture
+“经营脉搏”会把最近一个月的变化拆解为订单量贡献与客单价贡献，并识别营业额增量最大的商品；每条结论同样附有语义证据 ID。图表采用独立懒加载包，确保应用外壳首屏轻量。
+
+## 架构
 
 ```mermaid
 flowchart LR
-    CSV[Immutable CSV sources] --> Raw[Raw ingestion + provenance]
-    Raw --> Policy[Workspace cleaning policy]
-    Policy --> Canonical[(Canonical SQLite)]
-    Policy --> Ledger[Quality event ledger]
-    Manifest[Workspace manifest] --> Policy
-    Manifest --> Semantic[Governed semantic service]
+    CSV[不可变 CSV 数据源] --> Raw[原始摄取与来源追踪]
+    Raw --> Policy[工作空间清洗策略]
+    Policy --> Canonical[(规范化 SQLite)]
+    Policy --> Ledger[质量事件台账]
+    Manifest[工作空间清单] --> Policy
+    Manifest --> Semantic[治理语义服务]
     Canonical --> Semantic
-    Semantic --> API[FastAPI evidence API]
-    API --> Dashboard[React operator dashboard]
-    Question[Operator question] --> Resolver[Closed intent resolver]
-    Resolver -. optional phrasing .-> LLM[OpenAI-compatible LLM]
+    Semantic --> API[FastAPI 证据 API]
+    API --> Dashboard[React 经营看板]
+    Question[经营问题] --> Resolver[封闭意图解析器]
+    Resolver -. 可选语义解析 .-> LLM[OpenAI 兼容模型]
     Resolver --> Semantic
-    Semantic --> Answer[Answer + citations + chart action]
+    Semantic --> Answer[回答 + 引用 + 图表动作]
     Answer --> Dashboard
 ```
 
-The platform core owns ingestion, validation, semantic query contracts,
-evidence envelopes, assistant orchestration, and reusable UI. A workspace owns
-source declarations, relations, labels, metric definitions, and a small domain
-policy adapter. Adding another workspace does not require restaurant logic in
-the platform core.
+平台核心负责数据摄取、校验、语义查询契约、证据封装、助手编排与通用界面；工作空间负责数据源声明、关联关系、标签、指标定义及少量领域策略。新增工作空间不需要把餐饮逻辑写入平台核心。
 
-### Technology choices
+### 技术选型
 
-| Choice | Reason |
+| 选型 | 理由 |
 | --- | --- |
-| FastAPI + Pydantic | Typed request/response contracts and automatic OpenAPI without a heavy server framework |
-| SQLAlchemy + SQLite | Real relational joins, constraints, and reproducible zero-service startup for this data volume; the service boundary permits PostgreSQL later |
-| React + TypeScript + Vite | Fast, typed interaction layer with explicit loading/error states and a small application shell |
-| Recharts | Composable accessible chart primitives; loaded in a separate lazy chunk |
-| Integer cents | Exact currency aggregation without binary floating-point drift |
-| Pytest + Ruff + mypy + GitHub Actions | Executable numerical contracts, strict types, formatting, and a 90% coverage release gate |
+| FastAPI + Pydantic | 提供强类型请求/响应契约与自动 OpenAPI，不引入笨重服务框架 |
+| SQLAlchemy + SQLite | 支持真实关联、约束和零外部服务启动；现有服务边界可平滑替换 PostgreSQL |
+| React + TypeScript + Vite | 类型安全、交互快速，加载和错误状态明确 |
+| Recharts | 可组合的无障碍图表组件，并通过懒加载拆包 |
+| 整数分 | 精确聚合货币，避免二进制浮点误差 |
+| Pytest + Ruff + mypy + GitHub Actions | 把数字口径、严格类型、格式及 90% 覆盖率门槛变成可执行契约 |
 
-Detailed decisions are recorded in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
-and every repair/quarantine rule is documented in
-[docs/DATA_QUALITY.md](docs/DATA_QUALITY.md).
+详细决策见 [架构与决策记录](docs/ARCHITECTURE.md)，全部修复与隔离规则见 [数据质量契约](docs/DATA_QUALITY.md)。
 
-## Repository layout
+## 仓库结构
 
 ```text
-backend/          Generic ingestion, semantic metrics, AI tools, and API
-frontend/         Metadata-driven React analytics experience
-workspaces/       Domain manifests and workspace-specific policy
-data/             Assignment-provided, immutable Moneki POS exports
-docs/             Architecture decisions and original assignment brief
-AI_USAGE.md       Transparent AI-assisted development log
-DEMO.md           Evidence-backed written product demonstration
+backend/          通用数据摄取、语义指标、AI 工具与 API
+frontend/         元数据驱动的 React 分析界面
+workspaces/       领域清单与工作空间专属策略
+data/             任务提供且保持不可变的 Moneki POS 数据
+docs/             架构决策与原始任务说明
+AI_USAGE.md       可审计的 AI 辅助开发记录
+DEMO.md           带证据的文字版产品演示
 ```
 
-## Local development
+## 本地运行
 
-Prerequisites: Python 3.11+, Node.js 24+, and pnpm 11+. From a fresh machine,
-the complete product runs in three steps:
+前置条件：Python 3.11+、Node.js 24+、pnpm 11+。在全新环境中只需三步：
 
 ```bash
 git clone https://github.com/718232157/proofline-analytics.git && cd proofline-analytics
@@ -113,12 +88,9 @@ python scripts/setup.py
 python scripts/dev.py
 ```
 
-Setup installs dependencies from the lockfile, ingests all raw CSV rows, and
-runs the audited canonicalization policy. Open `http://localhost:5173`.
-Backend health check: `GET http://localhost:8000/api/health`.
+初始化脚本会按锁文件安装依赖、摄取全部原始 CSV 行并执行可审计规范化策略。随后打开 `http://localhost:5173`。后端健康检查：`GET http://localhost:8000/api/health`。
 
-Governed analytics are exposed through one contract rather than dashboard-only
-queries:
+治理分析统一通过以下契约开放，而不是散落在看板查询中：
 
 ```http
 POST /api/workspaces/moneki/analytics/query
@@ -132,28 +104,18 @@ Content-Type: application/json
 }
 ```
 
-The response includes values in integer minor currency units plus a stable
-evidence ID, processing-run ID, metric definition, and human-readable scope.
+响应包含以整数最小货币单位表示的值、稳定证据 ID、处理批次 ID、指标定义和可读查询范围。
 
-### Grounded assistant
+### 可信分析助手
 
-`POST /api/workspaces/moneki/assistant/chat` accepts a question and optional
-prior `context`. The assistant follows a strict two-stage contract:
+`POST /api/workspaces/moneki/assistant/chat` 接收问题及可选的上文 `context`。助手严格遵守两阶段契约：
 
-1. A deterministic resolver handles the required operational intents. When an
-   `LLM_API_KEY` is configured, an OpenAI-compatible model may map long-tail
-   phrasing into the same closed intent schema; it is explicitly forbidden from
-   calculating numbers.
-2. The governed analytics service executes the metric query. Only its returned
-   values can enter the answer and evidence citations.
+1. 确定性解析器处理必需的经营意图。配置 `LLM_API_KEY` 后，OpenAI 兼容模型只可把长尾表达映射到同一个封闭意图结构，明确禁止自行计算数字。
+2. 治理分析服务执行指标查询。只有工具返回的值才能进入回答与证据引用。
 
-Without a key, this is still a real tool chain—not canned numeric text. The
-intent resolver creates a semantic query at runtime, and tests compare every
-answer citation with the canonical database result. Unsupported questions
-return a scoped refusal.
+即使没有密钥，这仍是一条真实工具链，而不是预置数字文本。意图解析器会在运行时构造语义查询，测试则逐项比对回答引用和规范数据库结果。无法支持的问题会返回边界清晰的拒答。
 
-For pipeline development, raw ingestion remains deliberately separate from
-cleaning:
+开发数据管道时，原始摄取与清洗有意分离：
 
 ```bash
 cd backend
@@ -161,26 +123,21 @@ python -m app.cli ingest --workspace moneki
 python -m app.cli process --workspace moneki
 ```
 
-The first command validates `workspaces/moneki/workspace.toml`, imports all
-12,156 source rows with provenance, and replaces the previous raw run
-atomically. The second applies the deterministic repair/quarantine policy and
-writes a row-level quality ledger. See [the data-quality contract](docs/DATA_QUALITY.md).
+第一条命令校验 `workspaces/moneki/workspace.toml`，带来源信息导入全部 12,156 行数据，并以事务方式替换上一次原始批次。第二条命令执行确定性修复/隔离策略并写入逐行质量台账。详见[数据质量契约](docs/DATA_QUALITY.md)。
 
-## Delivery contract
+## 交付检查
 
-- [x] Public GitHub repository with meaningful development history
-- [x] Three-step startup and architecture diagram in this README
-- [x] Auditable data policy and golden metric tests
-- [x] AI answers whose numbers match database results
-- [x] `AI_USAGE.md` with real prompts, failures, and human-owned decisions
-- [x] `DEMO.md` with required questions and verifiable evidence
+- [x] GitHub 公开仓库及有意义的开发提交历史
+- [x] 三步启动说明及 README 架构图
+- [x] 可审计数据策略与黄金指标测试
+- [x] AI 回答数字与数据库结果一致
+- [x] `AI_USAGE.md` 记录真实提示词、失败案例及人工决策
+- [x] `DEMO.md` 覆盖必问题目并提供可验证证据
 
-## Source and attribution
+## 数据来源与致谢
 
-The `moneki` workspace implements the public
-[Moneki full-stack assignment](https://github.com/MorrisPRC/moneki-fullstack-assignment).
-Its anonymized CSV files are retained as the immutable source layer.
+`moneki` 工作空间实现自公开的 [Moneki 全栈作业](https://github.com/MorrisPRC/moneki-fullstack-assignment)，其中匿名 CSV 文件作为不可变原始数据层保留。
 
-## License
+## 许可证
 
-MIT. See [LICENSE](LICENSE).
+MIT，详见 [LICENSE](LICENSE)。

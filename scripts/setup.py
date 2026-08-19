@@ -1,4 +1,4 @@
-"""Create local runtimes, install locked dependencies, and prepare canonical data."""
+"""创建本地运行环境、安装锁定依赖并准备规范数据。"""
 
 from __future__ import annotations
 
@@ -28,10 +28,10 @@ def venv_python() -> Path:
 def main() -> None:
     pnpm = shutil.which("pnpm")
     if pnpm is None:
-        raise SystemExit("pnpm 11+ is required. Install it with: corepack enable pnpm")
+        raise SystemExit("需要 pnpm 11+。请执行：corepack enable pnpm")
 
     if not VENV.exists():
-        print("→ creating backend virtual environment")
+        print("→ 正在创建后端虚拟环境")
         venv.EnvBuilder(with_pip=True).create(VENV)
 
     python = str(venv_python())
@@ -39,7 +39,7 @@ def main() -> None:
     run([pnpm, "install", "--frozen-lockfile"], FRONTEND)
     run([python, "-m", "app.cli", "ingest", "--workspace", "moneki"], BACKEND)
     run([python, "-m", "app.cli", "process", "--workspace", "moneki"], BACKEND)
-    print("\n✓ setup complete — run: python scripts/dev.py")
+    print("\n✓ 初始化完成，请执行：python scripts/dev.py")
 
 
 if __name__ == "__main__":

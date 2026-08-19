@@ -1,118 +1,78 @@
-# AI Usage Report
+# AI 使用报告
 
-This file is an evidence log, not a retrospective marketing summary. It is
-updated alongside implementation commits so reviewers can see where AI helped,
-where it failed, and which decisions remained human-owned.
+这是一份可核验的证据日志，不是事后包装的宣传材料。它随实现提交同步更新，让评审能够看见 AI 在哪里提供了帮助、在哪里犯过错，以及哪些决策始终由人负责。
 
-## Tools used
+## 使用的工具
 
-| Tool | Role | Guardrail |
+| 工具 | 用途 | 约束 |
 | --- | --- | --- |
-| OpenAI Codex | Repository analysis, implementation assistance, test review, and documentation | Every generated change is inspected and verified against executable tests or source data |
+| OpenAI Codex | 仓库分析、辅助实现、测试审查与文档编写 | 所有生成变更均经过人工检查，并用可执行测试或源数据验证 |
 
-## Task decomposition
+## 任务拆分
 
-1. Inspect the assignment and profile every raw CSV row.
-2. Separate reusable trust primitives from the Moneki domain configuration.
-3. Define a documented data-quality and metric contract.
-4. Build deterministic ingestion and analytics before adding an LLM.
-5. Expose only validated semantic tools to the LLM.
-6. Prove answer-to-database consistency with golden tests.
-7. Build product interactions around evidence, not a generic chat box.
+1. 阅读任务要求并分析每一行原始 CSV 数据。
+2. 将可复用的可信分析能力与 Moneki 领域配置分离。
+3. 定义并记录数据质量与指标契约。
+4. 先实现确定性摄取和分析，再接入 LLM。
+5. 只向 LLM 暴露经过验证的语义工具。
+6. 用黄金测试证明回答与数据库一致。
+7. 围绕证据设计产品交互，而不是再做一个通用聊天框。
 
-## Prompt log
+## 真实提示词记录
 
-### Prompt 001 — repository orientation
+### Prompt 001 — 仓库分析
 
-> Analyze the assignment, identify the actual scoring bottleneck, inspect the
-> dirty data, and propose a high-quality implementation and commit plan. Do not
-> start by producing a generic dashboard.
+> 分析任务，找出真正的评分瓶颈，检查脏数据，并提出高质量实现与提交计划。不要一开始就生成千篇一律的看板。
 
-**Outcome:** The highest-risk requirement is numerical grounding. The initial
-design used a shared metric contract and restricted analytics tools.
+**结果：** 数字可信度是风险最高的要求，因此初始方案采用统一指标契约与受限分析工具。
 
-**Verification:** Findings were checked against all source CSV rows. They will
-be locked by automated data-profile and golden-metric tests.
+**验证：** 结论逐行对照全部源 CSV，并由自动化数据画像和黄金指标测试锁定。
 
-### Prompt 002 — reusable product boundary
+### Prompt 002 — 通用产品边界
 
-> Do not build only for the assignment. Make it capable of producing real value
-> as a general product.
+> 不要只为了完成作业。把它做成能够产生真实价值的通用产品。
 
-**Outcome:** The architecture was split into a reusable platform and a
-configuration-driven Moneki workspace before the foundation commit was made.
-Workspace manifests own domain labels and metric policy; ingestion, evidence,
-query validation, AI orchestration, and UI primitives remain generic.
+**结果：** 在基础提交前，将架构拆分为通用平台和配置驱动的 Moneki 工作空间。工作空间清单负责领域标签与指标策略；摄取、证据、查询校验、AI 编排和界面组件留在通用层。
 
-**Verification:** No restaurant-specific module is permitted in the platform
-core. A later architecture test will load the Moneki workspace through the same
-registry interface intended for additional workspaces.
+**验证：** 平台核心不允许出现餐饮专属模块；架构测试通过面向其他工作空间的同一注册接口加载 Moneki。
 
-### Prompt 003 — grounded assistant boundary
+### Prompt 003 — 可信助手边界
 
-> Build the AI question-answering layer so the model can interpret language but
-> can never calculate, provide SQL, or introduce a numeric fact. It must support
-> the three required questions, a contextual month follow-up, and an honest
-> unsupported-question path without an API key.
+> 构建 AI 问答层：模型可以理解语言，但不能计算、提供 SQL 或引入任何数字事实。无 API Key 时也必须支持三个必问题、月份上下文追问和诚实拒答。
 
-**Outcome:** Common intents resolve locally; optional OpenAI-compatible model
-output is constrained to `{intent, product, month}`. All answer values and
-citations are generated from the governed analytics service.
+**结果：** 常见意图由本地解析器处理；可选 OpenAI 兼容模型的输出被限制为 `{intent, product, month}`。所有回答值与引用均由治理分析服务生成。
 
-**Verification:** Golden tests assert the category leader, June beef-poke
-revenue, recent AOV direction, May follow-up, evidence processing run, and
-zero-citation refusal path.
+**验证：** 黄金测试覆盖品类第一、六月牛肉 poke 营业额、近期客单价趋势、五月追问、证据处理批次以及零引用拒答路径。
 
-## AI failures and corrections
+## AI 出错与纠正
 
-### Mixed date parsing produced plausible but wrong months
+### 混合日期解析得出了“看似合理但错误”的月份
 
-**Incorrect approach:** During exploratory profiling, AI-generated analysis
-used a global `dayfirst=True` parser for a column containing ISO dates and
-day-first dates. That interpretation moved valid ISO values into unexpected
-months.
+**错误做法：** 探索性分析曾对同时含 ISO 日期和日优先日期的字段全局使用 `dayfirst=True`，导致部分有效 ISO 日期被移动到错误月份。
 
-**How it was detected:** The resulting date range and month distribution did
-not match the source contract (May through July 2026). We inspected the raw
-string patterns instead of accepting the plausible aggregate.
+**发现方式：** 结果日期范围与月份分布不符合源数据契约（2026 年 5 月至 7 月），因此回查原始字符串模式，而不是接受貌似合理的聚合。
 
-**Correction:** The production parser now routes the three accepted formats by
-regular expression before parsing: `%Y-%m-%d`, `%Y/%m/%d`, and `%d-%m-%Y`.
-Unit tests cover each format and invalid calendar dates; the full-dataset test
-locks all three monthly totals.
+**修正：** 生产解析器先用正则分流三种允许格式，再分别按 `%Y-%m-%d`、`%Y/%m/%d` 和 `%d-%m-%Y` 解析。单元测试覆盖每种格式和非法日期，全量测试锁定三个月度总额。
 
-### Why missing amounts are not filled from unit price
+### 为什么不按单价补齐缺失金额
 
-An inferred repair (`quantity × unit_price`) would make the dataset look more
-complete, but the source has no discount field and contains legitimate negative
-refunds. The human-owned decision is therefore to quarantine missing amounts,
-retain the raw row, and expose the exclusion in the quality ledger.
+用 `quantity × unit_price` 推断可提高“完整率”，但源数据没有折扣字段且存在真实负数退款。人工决策是隔离缺失金额、保留原始行，并在质量台账中公开排除原因。
 
-### A plausible hand-calculated AOV was rejected
+### 拒绝了一个手算但不精确的客单价
 
-The initial planning note recorded June average order value as approximately
-¥34.95, but also carried an incorrect unrounded intermediate value. The
-semantic golden test recomputed `13,244,000 cents / 3,789 orders` and failed on
-the mismatch. The contract now asserts 3,495.38 cents internally, with ¥34.95
-as the presentation-rounded value. This is why derived numbers are computed by
-the governed metric service rather than copied from prose.
+早期记录把六月平均客单价约记为 ¥34.95，却包含错误的未四舍五入中间值。语义黄金测试重新计算 `13,244,000 分 / 3,789 单` 并发现不一致。契约现固定内部值 3,495.38 分，展示值为 ¥34.95。这也是派生数字必须由治理指标服务计算、不能从文案复制的原因。
 
-### A follow-up answer fixture contained an invented number
+### 上下文追问测试曾包含编造数字
 
-While writing the context test for “那五月呢？”, AI assistance proposed
-¥13,692 as the expected May revenue for beef poke without first executing the
-metric query. The grounding test failed: the governed semantic result is
-¥13,020. The fixture was corrected to the tool result, and the test now proves
-that follow-up context changes only the month while preserving the product.
-This is the exact failure mode the product architecture is designed to stop.
+在编写“那五月呢？”测试时，AI 辅助在执行指标查询前给出了牛肉 poke 五月营业额 ¥13,692。可信度测试随即失败：治理语义结果应为 ¥13,020。夹具已按工具结果修正，且测试会证明追问只改变月份、保留商品。这正是本产品试图阻断的错误模式。
 
-## Human-owned decisions
+## 始终由人负责的决策
 
-| Decision kept human-owned | Why |
+| 人工决策 | 原因 |
 | --- | --- |
-| Evidence-first product positioning and reusable platform boundary | This determines who the product serves and what trust promise it makes; it is not a code-completion choice |
-| Repair versus quarantine policy | Imputation changes business truth. Missing amounts and conflicting IDs required an explicit risk decision |
-| Revenue, order count, AOV, and refund definitions | Metric semantics are business contracts; AI may implement them but cannot choose them silently |
-| LLM versus deterministic-computation boundary | Allowing free SQL or model-generated numbers would violate the assignment’s central correctness requirement |
-| Visual hierarchy and proactive insight selection | The choice to foreground trust rate, evidence IDs, and growth decomposition reflects product judgment |
-| Final acceptance and release | Automated checks provide evidence, but a human remains accountable for whether the evidence is sufficient |
+| 证据优先定位与通用平台边界 | 决定产品服务对象和信任承诺，不属于代码补全问题 |
+| 修复与隔离策略 | 推断会改变业务事实；缺失金额与冲突订单必须显式权衡风险 |
+| 营业额、订单数、客单价与退款定义 | 指标语义是业务契约，AI 不得静默决定 |
+| LLM 与确定性计算边界 | 自由 SQL 或模型生成数字会违背核心正确性要求 |
+| 视觉层级与主动洞察选择 | 突出可信率、证据 ID 与增长拆解体现产品判断 |
+| 最终验收与发布 | 自动检查提供证据，但最终责任仍由人承担 |

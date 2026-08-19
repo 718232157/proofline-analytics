@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 def test_registry_loads_validated_moneki_manifest() -> None:
     manifest = WorkspaceRegistry(PROJECT_ROOT).load("moneki")
 
-    assert manifest.workspace.name == "Moneki Operations"
+    assert manifest.workspace.name == "Moneki 经营分析"
     assert [source.name for source in manifest.sources] == ["sales", "stores", "products"]
     assert {metric.key for metric in manifest.metrics} == {
         "revenue",

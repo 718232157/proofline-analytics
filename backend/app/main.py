@@ -29,7 +29,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
-        description="Evidence-first analytics and grounded AI answers.",
+        description="以证据为先的可信分析与可溯源 AI 回答。",
     )
     app.add_middleware(
         CORSMiddleware,

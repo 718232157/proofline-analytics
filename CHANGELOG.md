@@ -1,25 +1,32 @@
-# Changelog
+# 更新日志
+
+## 未发布
+
+### 本地化
+
+- 统一产品界面、启动提示和评审文档中的中文表达
+- 技术标识、API 路径、代码字段与必要工具名称保留英文，确保可执行性
 
 ## 0.1.0 — 2026-08-19
 
-First public release of Proofline Analytics.
+Proofline 可信分析首个公开版本。
 
-### Product
+### 产品
 
-- Evidence-linked operations dashboard with shared date scope
-- Grounded conversational analytics, contextual follow-ups, and honest fallback
-- Answer-to-chart synchronization and proactive growth-driver insights
-- Responsive desktop/mobile interface with lazy-loaded charts
+- 证据关联的经营看板与统一日期范围
+- 可信对话分析、上下文追问与诚实降级
+- 回答到图表同步，以及主动增长驱动洞察
+- 桌面与移动端响应式界面，图表懒加载
 
-### Trust layer
+### 信任层
 
-- Lossless raw ingestion with source-row provenance
-- Deterministic repair, canonical deduplication, and quarantine ledger
-- Governed metric API using exact integer minor currency units
-- 42 automated tests, full-dataset golden values, and a 90% coverage gate
+- 保留源行来源的无损原始摄取
+- 确定性修复、规范化去重与隔离台账
+- 使用精确整数最小货币单位的治理指标 API
+- 42 项自动化测试、全量数据黄金值及 90% 覆盖率门槛
 
-### Delivery
+### 交付
 
-- Cross-platform three-step startup workflow
-- Required README architecture/selection rationale, AI usage report, and written demo
-- Public CI, dependency audit, static types, linting, and formatting checks
+- 跨平台三步启动流程
+- README 架构与选型理由、AI 使用报告及文字版演示
+- 公开 CI、依赖审计、静态类型、代码检查与格式检查

@@ -1,4 +1,4 @@
-"""Run the API and web application together with graceful shutdown."""
+"""同时启动 API 与 Web 应用，并在退出时安全关闭。"""
 
 from __future__ import annotations
 
@@ -21,10 +21,10 @@ def venv_python() -> Path:
 def main() -> None:
     python = venv_python()
     if not python.is_file():
-        raise SystemExit("Local runtime is missing. Run: python scripts/setup.py")
+        raise SystemExit("未找到本地运行环境。请先执行：python scripts/setup.py")
     pnpm = shutil.which("pnpm")
     if pnpm is None:
-        raise SystemExit("pnpm 11+ is required. Install it with: corepack enable pnpm")
+        raise SystemExit("需要 pnpm 11+。请执行：corepack enable pnpm")
 
     processes = [
         subprocess.Popen(
@@ -41,9 +41,9 @@ def main() -> None:
         ),
         subprocess.Popen([pnpm, "dev"], cwd=FRONTEND),
     ]
-    print("\n✓ Proofline API: http://localhost:8000")
-    print("✓ Proofline web: http://localhost:5173")
-    print("Press Ctrl+C to stop both services.\n")
+    print("\n✓ Proofline API：http://localhost:8000")
+    print("✓ Proofline 网页：http://localhost:5173")
+    print("按 Ctrl+C 停止两个服务。\n")
     try:
         exit_code = processes[0].wait()
         if exit_code:

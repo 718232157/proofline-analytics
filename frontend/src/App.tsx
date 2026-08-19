@@ -139,7 +139,7 @@ function App() {
       <main className="main" id="top">
         <header className="topbar">
           <div>
-            <p className="eyebrow">OPERATIONS / OVERVIEW</p>
+            <p className="eyebrow">经营分析 / 总览</p>
             <h1>经营总览</h1>
           </div>
           <div className="topbar-actions">
@@ -286,7 +286,7 @@ function App() {
 
           <article className="panel products-panel" id="products">
             <PanelHeader
-              title="Top 10 商品"
+              title="营业额前 10 商品"
               subtitle="按净营业额排序"
               badge={data?.products.evidence.evidence_id}
             />
@@ -325,7 +325,7 @@ function App() {
         <section className="insight-feed" aria-label="主动经营洞察">
           <header>
             <div>
-              <p className="eyebrow">PROACTIVE SIGNALS</p>
+              <p className="eyebrow">主动经营信号</p>
               <h2>经营脉搏</h2>
             </div>
             <span>基于 {data?.insights?.period ?? '最新完整月份'}</span>

@@ -119,9 +119,9 @@ export function AssistantDrawer({
                         <span>{citation.label}</span>
                         <strong>{citation.display_value}</strong>
                       </div>
-                      <small>{citation.scope}</small>
+                      <small>{formatScope(citation.scope)}</small>
                       <code>
-                        证据 #{citation.evidence_id.slice(0, 8)} · run {citation.processing_run_id}
+                        证据 #{citation.evidence_id.slice(0, 8)} · 批次 {citation.processing_run_id}
                       </code>
                     </div>
                   ))}
@@ -162,4 +162,14 @@ export function AssistantDrawer({
       </aside>
     </>
   )
+}
+
+function formatScope(scope: string) {
+  if (scope === 'all accepted records') return '全部可信记录'
+  return scope
+    .replaceAll('date=', '日期=')
+    .replaceAll('group_by=', '分组=')
+    .replaceAll('product=', '商品=')
+    .replaceAll('store_category=', '门店品类=')
+    .replaceAll('store=', '门店=')
 }

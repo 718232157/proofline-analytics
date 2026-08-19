@@ -1,59 +1,48 @@
-# Data quality contract
+# 数据质量契约
 
-Proofline treats cleaning as a governed transformation, not an invisible CSV
-rewrite. The source rows remain immutable in `raw_records`; every repair,
-deduplication, quarantine, and business classification is written to
-`quality_events` with its source row and record key.
+Proofline 将清洗视为受治理的转换过程，而非不可见的 CSV 改写。源记录在 `raw_records` 中保持不可变；每次修复、去重、隔离及业务分类都会连同源行号和记录键写入 `quality_events`。
 
-## Moneki policy
+## Moneki 清洗策略
 
-The processor applies rules in a fixed order so a row is counted once in the
-most actionable quarantine category.
+处理器按固定优先级应用规则，确保一行只进入一个最具行动价值的隔离类别。
 
-| Stage | Policy | Why it is safe |
+| 阶段 | 规则 | 为什么安全 |
 | --- | --- | --- |
-| Parse | Route `YYYY-MM-DD`, `YYYY/MM/DD`, and `DD-MM-YYYY` explicitly | Avoids ambiguous global date inference |
-| Normalize | Trim and uppercase identifiers | Repairs casing/whitespace without changing identity |
-| Money | Remove a leading `¥`; parse exact decimal values into integer cents | Avoids floating-point drift and preserves sign |
-| Deduplicate | Compare the complete canonical row signature | Catches duplicates that differ only in repairable formatting |
-| Conflict | Quarantine every surviving row when one order ID has different canonical payloads | Never chooses an arbitrary version of a disputed transaction |
-| Referential integrity | Quarantine unknown stores/products | Prevents silent attribution to the wrong dimension |
-| Quantity | Require a strictly positive integer | Zero/negative quantities are not treated as sales |
-| Amount | Require an explicit amount matching `quantity × unit price` in absolute value | Missing amounts are not imputed because discounts are not represented in the source contract |
-| Refund | Preserve a valid negative amount and classify it as a refund | Revenue remains net of supported refunds |
+| 日期解析 | 明确分流 `YYYY-MM-DD`、`YYYY/MM/DD` 与 `DD-MM-YYYY` | 避免全局日期推断带来的歧义 |
+| 标准化 | 去除首尾空白并将标识符转为大写 | 在不改变身份的前提下修复大小写和空白 |
+| 金额 | 去除前导 `¥`，将精确十进制转为整数分 | 避免浮点漂移并保留正负号 |
+| 去重 | 比较完整规范记录签名 | 识别仅在可修复格式上不同的重复项 |
+| 冲突 | 同一订单 ID 存在不同规范内容时，隔离所有剩余版本 | 不擅自选择争议交易的任一版本 |
+| 引用完整性 | 隔离未知门店或商品 | 防止静默归属到错误维度 |
+| 数量 | 必须为严格正整数 | 零或负数数量不作为销售处理 |
+| 金额校验 | 必须显式提供金额，且绝对值等于 `数量 × 单价` | 源契约无折扣字段，因此不推断缺失金额 |
+| 退款 | 保留合法负金额并标记为退款 | 营业额正确反映受支持的净退款 |
 
-No source file is modified. Quarantined rows remain queryable through their raw
-payload and quality event, so a future source correction can be reprocessed.
+源文件不会被修改。被隔离记录仍可通过原始载荷和质量事件查询，因此数据源修正后可以重新处理。
 
-## Reproducible baseline
+## 可复现基线
 
-For the assignment dataset, the executable contract in
-`backend/tests/test_moneki_processing.py` asserts:
+针对任务数据集，`backend/tests/test_moneki_processing.py` 中的可执行契约固定以下结果：
 
-| Outcome | Count |
+| 结果 | 数量 |
 | --- | ---: |
-| Raw sales rows | 12,131 |
-| Accepted canonical sales | 11,869 |
-| Canonical duplicates removed | 78 |
-| Rows quarantined | 184 |
-| Repairs recorded | 203 |
-| Valid refunds preserved | 49 |
+| 原始销售记录 | 12,131 |
+| 进入规范层的销售记录 | 11,869 |
+| 删除的规范重复记录 | 78 |
+| 隔离记录 | 184 |
+| 记录的修复事件 | 203 |
+| 保留的有效退款 | 49 |
 
-Quarantine reasons are mutually exclusive under the precedence above: 4
-conflicting-order rows, 7 unknown-store rows, 30 unknown-product rows, 24
-invalid-quantity rows, and 119 missing/invalid-amount rows.
+在上述优先级下，隔离原因互斥：冲突订单 4 行、未知门店 7 行、未知商品 30 行、无效数量 24 行、缺失或无效金额 119 行。
 
-The same test locks the monthly net revenue and order totals:
+同一测试还固定每月净营业额与订单数：
 
-| Month | Net revenue | Orders |
+| 月份 | 净营业额 | 订单数 |
 | --- | ---: | ---: |
 | 2026-05 | ¥139,446.00 | 3,836 |
 | 2026-06 | ¥132,440.00 | 3,789 |
 | 2026-07 | ¥151,527.00 | 4,244 |
 
-The derived monthly average order values are ¥36.35, ¥34.95, and ¥35.70 after
-display rounding. Internally, the semantic layer retains two decimal places in
-minor currency units before presentation (for example, June is 3,495.38 cents).
+展示舍入后的月平均客单价分别为 ¥36.35、¥34.95 和 ¥35.70。语义层内部在最小货币单位中保留两位小数，例如六月为 3,495.38 分。
 
-If a future code change alters any count or total, CI fails and requires an
-explicit policy review rather than silently changing dashboard numbers.
+未来任何代码变更只要改变上述数量或金额，CI 就会失败并要求明确复核策略，绝不会静默改变看板数字。

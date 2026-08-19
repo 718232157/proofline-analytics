@@ -1,7 +1,7 @@
 [workspace]
 slug = "moneki"
-name = "Moneki Operations"
-description = "Five-store restaurant operations workspace"
+name = "Moneki 经营分析"
+description = "五家餐饮门店的经营分析工作空间"
 locale = "zh-CN"
 currency = "CNY"
 timezone = "Asia/Shanghai"
