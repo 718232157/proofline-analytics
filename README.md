@@ -1,5 +1,7 @@
 # Proofline Analytics
 
+[![CI](https://github.com/718232157/proofline-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/718232157/proofline-analytics/actions/workflows/ci.yml)
+
 **Evidence-first analytics for questions that cannot afford invented numbers.**
 
 Proofline is a reusable analytics platform for relational CSV and database
