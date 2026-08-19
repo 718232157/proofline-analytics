@@ -11,8 +11,8 @@ The restaurant assignment is implemented as the first complete workspace,
 `moneki`; it is a production-shaped example rather than hard-coded product
 logic.
 
-> Current milestone: project foundation. Each milestone is committed as a
-> runnable, reviewable increment.
+> Current milestone: auditable canonical data layer. Each milestone is
+> committed as a runnable, reviewable increment.
 
 ## Why this is not a generic chat-with-CSV demo
 
@@ -74,10 +74,13 @@ Raw workspace ingestion is deliberately separate from cleaning:
 ```bash
 cd backend
 python -m app.cli ingest --workspace moneki
+python -m app.cli process --workspace moneki
 ```
 
-The command validates `workspaces/moneki/workspace.toml`, imports all 12,156
-source rows with provenance, and replaces the previous raw run atomically.
+The first command validates `workspaces/moneki/workspace.toml`, imports all
+12,156 source rows with provenance, and replaces the previous raw run
+atomically. The second applies the deterministic repair/quarantine policy and
+writes a row-level quality ledger. See [the data-quality contract](docs/DATA_QUALITY.md).
 
 ## Delivery contract
 

@@ -50,9 +50,28 @@ registry interface intended for additional workspaces.
 
 ## AI failures and corrections
 
-No implementation failure has been recorded yet. Entries will include the
-incorrect output, how it was detected, and the concrete correction. This
-section will not be filled with invented examples.
+### Mixed date parsing produced plausible but wrong months
+
+**Incorrect approach:** During exploratory profiling, AI-generated analysis
+used a global `dayfirst=True` parser for a column containing ISO dates and
+day-first dates. That interpretation moved valid ISO values into unexpected
+months.
+
+**How it was detected:** The resulting date range and month distribution did
+not match the source contract (May through July 2026). We inspected the raw
+string patterns instead of accepting the plausible aggregate.
+
+**Correction:** The production parser now routes the three accepted formats by
+regular expression before parsing: `%Y-%m-%d`, `%Y/%m/%d`, and `%d-%m-%Y`.
+Unit tests cover each format and invalid calendar dates; the full-dataset test
+locks all three monthly totals.
+
+### Why missing amounts are not filled from unit price
+
+An inferred repair (`quantity × unit_price`) would make the dataset look more
+complete, but the source has no discount field and contains legitimate negative
+refunds. The human-owned decision is therefore to quarantine missing amounts,
+retain the raw row, and expose the exclusion in the quality ledger.
 
 ## Human-owned decisions
 

@@ -14,3 +14,10 @@ def test_ingest_command_defaults_to_replacement_mode() -> None:
 def test_cli_requires_a_subcommand() -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args([])
+
+
+def test_process_command_selects_workspace() -> None:
+    args = build_parser().parse_args(["process", "--workspace", "moneki"])
+
+    assert args.command == "process"
+    assert args.workspace == "moneki"

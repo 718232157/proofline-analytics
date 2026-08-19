@@ -5,6 +5,7 @@ description = "Five-store restaurant operations workspace"
 locale = "zh-CN"
 currency = "CNY"
 timezone = "Asia/Shanghai"
+processor = "app.workspace_adapters.moneki.processor:MonekiProcessor"
 
 [[sources]]
 name = "sales"
