@@ -12,4 +12,7 @@ def test_health_endpoint_reports_service_identity() -> None:
         "service": "Proofline Analytics API",
         "version": "0.1.0",
         "environment": "development",
+        "assistant_mode": "deterministic",
+        "llm_model": None,
+        "numeric_source": "governed_analytics_api",
     }

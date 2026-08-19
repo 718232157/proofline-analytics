@@ -115,7 +115,11 @@ Content-Type: application/json
 
 即使没有密钥，这仍是一条真实工具链，而不是预置数字文本。意图解析器会在运行时构造语义查询，测试则逐项比对回答引用和规范数据库结果。无法支持的问题会返回边界清晰的拒答。
 
-如需覆盖更口语化的提问，可复制 `.env.example` 为 `.env`，填写 `LLM_API_KEY`，并按供应商调整 `LLM_BASE_URL` 与 `LLM_MODEL`。这项接入是可选增强：密钥只用于理解用户意图，营业额、订单数和客单价仍由后端治理查询计算，因此更换模型不会改变指标口径。
+这里有两类 API，不能混为一谈：`/analytics/query` 是必需的真实数字工具，本地运行时会查询规范数据库；DeepSeek 等外部 LLM API 只是可选的语言理解增强。没有密钥时，确定性解析器仍会构造真实 `AnalyticsQuery`，不是把答案或数字写死。
+
+如需验证真实大模型接入，可复制 `.env.example` 为 `.env`，填写评审者自己的 `LLM_API_KEY`，并按供应商调整 `LLM_BASE_URL` 与 `LLM_MODEL`。默认配置使用 DeepSeek 当前的 OpenAI 兼容地址与 `deepseek-v4-flash`；密钥只用于把长尾表达映射到封闭意图，营业额、订单数和客单价始终由后端治理查询计算。密钥不得提交到仓库。
+
+启动后访问 `GET http://localhost:8000/api/health` 可核验运行模式：未配置密钥时 `assistant_mode=deterministic`；配置后为 `hybrid_llm` 并展示模型名称；两种模式的 `numeric_source` 都必须是 `governed_analytics_api`。修改 `.env` 后需要重启 `python scripts/dev.py`。
 
 开发数据管道时，原始摄取与清洗有意分离：
 

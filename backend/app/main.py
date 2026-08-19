@@ -23,6 +23,9 @@ class HealthResponse(BaseModel):
     service: str
     version: str
     environment: str
+    assistant_mode: str
+    llm_model: str | None
+    numeric_source: str
 
 
 def create_app() -> FastAPI:
@@ -46,6 +49,9 @@ def create_app() -> FastAPI:
             service=settings.app_name,
             version=settings.app_version,
             environment=settings.app_env,
+            assistant_mode="hybrid_llm" if settings.llm_api_key else "deterministic",
+            llm_model=settings.llm_model if settings.llm_api_key else None,
+            numeric_source="governed_analytics_api",
         )
 
     @app.get(

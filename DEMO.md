@@ -13,7 +13,9 @@ python scripts/dev.py
 
 打开 `http://localhost:5173`，点击左侧“分析助手”。无需 API key；本地意图解析器
 仍会在运行时创建真实 `AnalyticsQuery` 并查询数据库。配置兼容模型后，模型也只能
-返回 `{intent, product, month}`，不能生成金额。
+返回 `{intent, product, month}`，不能生成金额。`GET /api/health` 会公开当前使用
+`deterministic` 还是 `hybrid_llm` 模式，并始终声明数字来源为
+`governed_analytics_api`。
 
 ## 问题一：门店品类 JOIN 与排名
 
@@ -48,8 +50,9 @@ python scripts/dev.py
   `date=2026-06-01..2026-06-30`
 - JOIN 路径：`moneki_sales.product_id → moneki_products.product_id`
 - 数据库证据值为 `1,344,000` 分
-- 回答后前端把整个看板同步到六月；六月总营业额同时变为 ¥132,440.00、
-  有效订单变为 3,789，说明对话和看板使用同一筛选范围
+- 用户点击“按此口径查看看板”后，前端同时应用六月和牛肉poke两个筛选条件；
+  看板净营业额同步为 ¥13,440.00，并明确显示当前经营范围，避免把商品答案与
+  全店六月数据混为一谈
 
 ## 问题三：派生指标与趋势解释
 

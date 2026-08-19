@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     llm_api_key: str | None = Field(default=None, repr=False)
     llm_base_url: str = "https://api.deepseek.com"
-    llm_model: str = "deepseek-chat"
+    llm_model: str = "deepseek-v4-flash"
 
     @property
     def allowed_origins(self) -> list[str]:
