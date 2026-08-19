@@ -37,7 +37,6 @@ export function AssistantDrawer({
       const response = await askAssistant(trimmed, context)
       setMessages((current) => [...current, { id: nextId.current++, role: 'assistant', response }])
       setContext(response.context)
-      if (response.chart_action) onApplyQuery(response.chart_action.query)
     } catch (error) {
       const message = error instanceof Error ? error.message : '请求失败'
       setMessages((current) => [
@@ -128,9 +127,12 @@ export function AssistantDrawer({
                   {message.response.chart_action && (
                     <button
                       className="apply-answer"
-                      onClick={() => onApplyQuery(message.response.chart_action!.query)}
+                      onClick={() => {
+                        onApplyQuery(message.response.chart_action!.query)
+                        onClose()
+                      }}
                     >
-                      同步到看板 →
+                      按此口径查看看板 →
                     </button>
                   )}
                 </div>
@@ -166,10 +168,20 @@ export function AssistantDrawer({
 
 function formatScope(scope: string) {
   if (scope === 'all accepted records') return '全部可信记录'
+  const labels: Record<string, string> = {
+    date: '日期',
+    product: '商品',
+    product_category: '商品品类',
+    store: '门店',
+    store_category: '门店品类',
+  }
   return scope
-    .replaceAll('date=', '日期=')
-    .replaceAll('group_by=', '分组=')
-    .replaceAll('product=', '商品=')
-    .replaceAll('store_category=', '门店品类=')
-    .replaceAll('store=', '门店=')
+    .split('; ')
+    .map((part) => {
+      const [key, value] = part.split('=', 2)
+      if (!value) return part
+      if (key === 'group_by') return `按${labels[value] ?? value}汇总`
+      return `${labels[key] ?? key}：${value}`
+    })
+    .join(' · ')
 }

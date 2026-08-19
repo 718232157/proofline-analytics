@@ -64,8 +64,6 @@ class AssistantService:
         self, session: Session, workspace_slug: str, intent: ResolvedIntent
     ) -> ChatResponse:
         assert intent.product is not None
-        assert intent.date_from is not None
-        assert intent.date_to is not None
         query = AnalyticsQuery(
             metric="revenue",
             filters={"product": (intent.product,)},
@@ -75,17 +73,25 @@ class AssistantService:
         result = self.analytics.query(session, workspace_slug, query)
         value = result.points[0].value
         display = self._currency(value)
-        month = intent.date_from.month
-        if value == 0:
-            answer = f"在已接受记录中，没有找到{intent.product}在{month}月的营业额。"
+        if intent.date_from is None:
+            if value == 0:
+                answer = f"在全部可信记录中，没有找到{intent.product}的营业额。"
+            else:
+                answer = f"{intent.product}在全部可信记录中的净营业额是{display}。"
+            title = f"{intent.product} · 全部可信记录"
         else:
-            answer = f"{intent.product}在{month}月的净营业额是{display}。"
+            month = intent.date_from.month
+            if value == 0:
+                answer = f"在已接受记录中，没有找到{intent.product}在{month}月的营业额。"
+            else:
+                answer = f"{intent.product}在{month}月的净营业额是{display}。"
+            title = f"{intent.product} · {month}月"
         return ChatResponse(
             status="answered",
             answer=answer,
             context=intent.context(),
             citations=(self._citation(result, value, {}, display),),
-            chart_action=ChartAction(title=f"{intent.product} · {month}月", query=query),
+            chart_action=ChartAction(title=title, query=query),
         )
 
     def _aov_trend(

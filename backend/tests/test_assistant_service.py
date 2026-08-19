@@ -85,3 +85,17 @@ def test_unsupported_question_refuses_to_invent_data(assistant_session: Session)
     assert "不会用常识补造数据" in response.answer
     assert response.citations == ()
     assert response.chart_action is None
+
+
+def test_product_summary_uses_the_full_governed_range(assistant_session: Session) -> None:
+    response = AssistantService(WorkspaceRegistry(PROJECT_ROOT)).answer(
+        assistant_session,
+        "moneki",
+        ChatRequest(question="灌汤包相关数据"),
+    )
+
+    assert response.status == "answered"
+    assert response.answer == "灌汤包在全部可信记录中的净营业额是¥24,775.00。"
+    assert response.citations[0].value == 2_477_500
+    assert response.chart_action is not None
+    assert response.chart_action.query.filters == {"product": ("灌汤包",)}

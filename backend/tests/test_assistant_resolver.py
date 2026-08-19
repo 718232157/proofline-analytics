@@ -45,3 +45,13 @@ def test_model_resolver_can_only_return_a_closed_intent_not_a_number() -> None:
 
 def test_deterministic_resolver_does_not_overreach() -> None:
     assert IntentResolver().resolve("预测明年利润") is None
+
+
+def test_deterministic_resolver_understands_product_summary_language() -> None:
+    intent = IntentResolver().resolve("灌汤包相关数据")
+
+    assert intent is not None
+    assert intent.name == "product_revenue"
+    assert intent.product == "灌汤包"
+    assert intent.date_from is None
+    assert intent.date_to is None

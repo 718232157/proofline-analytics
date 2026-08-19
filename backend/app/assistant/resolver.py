@@ -76,6 +76,10 @@ class IntentResolver:
             if product:
                 start, end = self._month_range(2026, month)
                 return ResolvedIntent("product_revenue", product, start, end)
+        if any(word in normalized for word in ("相关数据", "商品表现", "销售情况", "卖得怎么样")):
+            product = self._summary_product(normalized)
+            if product:
+                return ResolvedIntent("product_revenue", product)
         return None
 
     @staticmethod
@@ -102,6 +106,24 @@ class IntentResolver:
             return None
         product = match.group(1).removeprefix("那").removeprefix("查一下")
         return product or None
+
+    @staticmethod
+    def _summary_product(question: str) -> str | None:
+        product = question
+        for prefix in ("请问", "帮我看一下", "帮我看看", "看一下", "查一下"):
+            product = product.removeprefix(prefix)
+        suffixes = (
+            "相关数据",
+            "的相关数据",
+            "商品表现",
+            "的商品表现",
+            "销售情况",
+            "的销售情况",
+            "卖得怎么样",
+        )
+        for suffix in suffixes:
+            product = product.removesuffix(suffix)
+        return product.removesuffix("的") or None
 
 
 class ModelIntent(BaseModel):
@@ -166,7 +188,7 @@ class OpenAICompatibleIntentResolver:
             date_from, date_to = IntentResolver._month_range(2026, parsed.month)
         else:
             date_from, date_to = None, None
-        if parsed.intent == "product_revenue" and not (product and date_from and date_to):
+        if parsed.intent == "product_revenue" and not product:
             return None
         return ResolvedIntent(parsed.intent, product, date_from, date_to)
 

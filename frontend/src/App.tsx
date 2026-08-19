@@ -35,10 +35,18 @@ const currency = new Intl.NumberFormat('zh-CN', {
 })
 const integer = new Intl.NumberFormat('zh-CN')
 const formatCurrency = (cents: number) => currency.format(cents / 100)
+const DEFAULT_DATE_FROM = '2026-05-01'
+const DEFAULT_DATE_TO = '2026-07-31'
+const filterLabels: Record<string, string> = {
+  product: '商品',
+  product_category: '商品品类',
+  store: '门店',
+  store_category: '门店品类',
+}
 
 function App() {
-  const [dateFrom, setDateFrom] = useState('2026-05-01')
-  const [dateTo, setDateTo] = useState('2026-07-31')
+  const [dateFrom, setDateFrom] = useState(DEFAULT_DATE_FROM)
+  const [dateTo, setDateTo] = useState(DEFAULT_DATE_TO)
   const dateFromRef = useRef<HTMLInputElement>(null)
   const dateToRef = useRef<HTMLInputElement>(null)
   const [appliedRange, setAppliedRange] = useState({ from: dateFrom, to: dateTo })
@@ -46,10 +54,15 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
 
   useEffect(() => {
     const controller = new AbortController()
-    const scope = { date_from: appliedRange.from, date_to: appliedRange.to }
+    const scope = {
+      date_from: appliedRange.from,
+      date_to: appliedRange.to,
+      ...(Object.keys(activeFilters).length > 0 ? { filters: activeFilters } : {}),
+    }
     setLoading(true)
     setError(null)
     Promise.all([
@@ -79,7 +92,7 @@ function App() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [appliedRange])
+  }, [appliedRange, activeFilters])
 
   const trendData = useMemo(
     () =>
@@ -103,6 +116,9 @@ function App() {
         .map((point) => ({ name: point.dimensions.store_category, value: point.value }))
         .sort((a, b) => b.value - a.value),
     [data],
+  )
+  const activeFilterEntries = Object.entries(activeFilters).flatMap(([dimension, values]) =>
+    values.map((value) => ({ dimension, value })),
   )
 
   return (
@@ -153,6 +169,13 @@ function App() {
           </div>
         </header>
 
+        <nav className="mobile-nav" aria-label="移动端导航">
+          <a href="#overview">总览</a>
+          <a href="#products">商品</a>
+          <a href="#quality">质量</a>
+          <button onClick={() => setAssistantOpen(true)}>✦ 分析助手</button>
+        </nav>
+
         <section className="filter-bar" aria-label="日期筛选">
           <div className="filter-copy">
             <span className="filter-icon">⌁</span>
@@ -191,6 +214,20 @@ function App() {
             应用筛选
           </button>
         </section>
+
+        {activeFilterEntries.length > 0 && (
+          <section className="scope-banner" aria-label="当前经营筛选">
+            <div>
+              <strong>当前经营范围</strong>
+              {activeFilterEntries.map(({ dimension, value }) => (
+                <span key={`${dimension}-${value}`}>
+                  {filterLabels[dimension] ?? dimension} · {value}
+                </span>
+              ))}
+            </div>
+            <button onClick={() => setActiveFilters({})}>清除 AI 筛选</button>
+          </section>
+        )}
 
         {error && (
           <div className="error-state">
@@ -286,14 +323,40 @@ function App() {
 
           <article className="panel products-panel" id="products">
             <PanelHeader
-              title="营业额前 10 商品"
-              subtitle="按净营业额排序"
+              title={activeFilters.product ? '已选商品营业额' : '营业额前 10 商品'}
+              subtitle="图表看结构，表格核对精确值"
               badge={data?.products.evidence.evidence_id}
             />
-            <div className="bar-chart-area">
-              <Suspense fallback={<div className="chart-loading">正在加载商品排行…</div>}>
-                <ProductsChart data={productData} />
-              </Suspense>
+            <div className="product-ranking">
+              <div className="bar-chart-area">
+                <Suspense fallback={<div className="chart-loading">正在加载商品排行…</div>}>
+                  <ProductsChart data={productData} />
+                </Suspense>
+              </div>
+              <div className="product-table-wrap">
+                <table className="product-table">
+                  <caption className="sr-only">商品净营业额排名</caption>
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>商品</th>
+                      <th>净营业额</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productData.map((item, index) => (
+                      <tr key={item.name}>
+                        <td>{index + 1}</td>
+                        <td>{item.name}</td>
+                        <td>{currency.format(item.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!loading && productData.length === 0 && (
+                  <p className="empty-table">当前筛选下没有可信销售记录。</p>
+                )}
+              </div>
             </div>
           </article>
 
@@ -328,7 +391,9 @@ function App() {
               <p className="eyebrow">主动经营信号</p>
               <h2>经营脉搏</h2>
             </div>
-            <span>基于 {data?.insights?.period ?? '最新完整月份'}</span>
+            <span>
+              全局洞察 · 基于 {data?.insights?.period ?? '最新完整月份'} · 不受当前筛选影响
+            </span>
           </header>
           <div className="insight-cards">
             {(data?.insights?.insights ?? []).map((insight) => (
@@ -362,11 +427,12 @@ function App() {
         open={assistantOpen}
         onClose={() => setAssistantOpen(false)}
         onApplyQuery={(query: AnalyticsQuery) => {
-          if (query.date_from && query.date_to) {
-            setDateFrom(query.date_from)
-            setDateTo(query.date_to)
-            setAppliedRange({ from: query.date_from, to: query.date_to })
-          }
+          const from = query.date_from ?? DEFAULT_DATE_FROM
+          const to = query.date_to ?? DEFAULT_DATE_TO
+          setDateFrom(from)
+          setDateTo(to)
+          setAppliedRange({ from, to })
+          setActiveFilters(query.filters ? { ...query.filters } : {})
           document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' })
         }}
       />
