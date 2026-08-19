@@ -79,6 +79,20 @@ validated query and canonical processing run. It also carries the metric
 definition and filter scope, allowing the dashboard and AI layer to cite the
 same computation without exposing raw SQL.
 
+## ADR-005: The model interprets; deterministic tools calculate
+
+**Status:** Accepted
+
+An optional OpenAI-compatible model receives the question, prior analysis
+context, and a closed intent schema. It cannot submit SQL or metric values. The
+orchestrator validates its structured output, constructs an `AnalyticsQuery`,
+executes the semantic service, and composes citations from that result.
+
+Required questions also have a deterministic local resolver. This makes the
+submission reproducible without credentials while preserving the exact same
+database-backed tool path. Model timeout, malformed output, unsupported intent,
+or out-of-scope questions fail closed instead of producing an ungrounded answer.
+
 ## External design references
 
 - [Vanna](https://github.com/vanna-ai/vanna): tool execution, auditability, and structured results

@@ -92,6 +92,23 @@ Content-Type: application/json
 The response includes values in integer minor currency units plus a stable
 evidence ID, processing-run ID, metric definition, and human-readable scope.
 
+### Grounded assistant
+
+`POST /api/workspaces/moneki/assistant/chat` accepts a question and optional
+prior `context`. The assistant follows a strict two-stage contract:
+
+1. A deterministic resolver handles the required operational intents. When an
+   `LLM_API_KEY` is configured, an OpenAI-compatible model may map long-tail
+   phrasing into the same closed intent schema; it is explicitly forbidden from
+   calculating numbers.
+2. The governed analytics service executes the metric query. Only its returned
+   values can enter the answer and evidence citations.
+
+Without a key, this is still a real tool chain—not canned numeric text. The
+intent resolver creates a semantic query at runtime, and tests compare every
+answer citation with the canonical database result. Unsupported questions
+return a scoped refusal.
+
 Raw workspace ingestion is deliberately separate from cleaning:
 
 ```bash

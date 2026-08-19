@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.analytics import AnalyticsQuery, AnalyticsService, MetricResult
 from app.analytics.service import InvalidAnalyticsQuery
+from app.assistant import AssistantService, ChatRequest, ChatResponse
 from app.core.config import get_settings
 from app.quality import QualityService, QualitySummary
 from app.storage.database import get_session
@@ -85,6 +86,21 @@ def create_app() -> FastAPI:
     ) -> QualitySummary:
         try:
             return QualityService().summary(session, workspace_slug)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+
+    @app.post(
+        "/api/workspaces/{workspace_slug}/assistant/chat",
+        response_model=ChatResponse,
+        tags=["assistant"],
+    )
+    async def assistant_chat(
+        workspace_slug: str,
+        request: ChatRequest,
+        session: Annotated[Session, Depends(get_session)],
+    ) -> ChatResponse:
+        try:
+            return AssistantService(WorkspaceRegistry()).answer(session, workspace_slug, request)
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
 

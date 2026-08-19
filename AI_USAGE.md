@@ -20,6 +20,21 @@ where it failed, and which decisions remained human-owned.
 6. Prove answer-to-database consistency with golden tests.
 7. Build product interactions around evidence, not a generic chat box.
 
+### Prompt 003 — grounded assistant boundary
+
+> Build the AI question-answering layer so the model can interpret language but
+> can never calculate, provide SQL, or introduce a numeric fact. It must support
+> the three required questions, a contextual month follow-up, and an honest
+> unsupported-question path without an API key.
+
+**Outcome:** Common intents resolve locally; optional OpenAI-compatible model
+output is constrained to `{intent, product, month}`. All answer values and
+citations are generated from the governed analytics service.
+
+**Verification:** Golden tests assert the category leader, June beef-poke
+revenue, recent AOV direction, May follow-up, evidence processing run, and
+zero-citation refusal path.
+
 ## Prompt log
 
 ### Prompt 001 — repository orientation
@@ -81,6 +96,15 @@ semantic golden test recomputed `13,244,000 cents / 3,789 orders` and failed on
 the mismatch. The contract now asserts 3,495.38 cents internally, with ¥34.95
 as the presentation-rounded value. This is why derived numbers are computed by
 the governed metric service rather than copied from prose.
+
+### A follow-up answer fixture contained an invented number
+
+While writing the context test for “那五月呢？”, AI assistance proposed
+¥13,692 as the expected May revenue for beef poke without first executing the
+metric query. The grounding test failed: the governed semantic result is
+¥13,020. The fixture was corrected to the tool result, and the test now proves
+that follow-up context changes only the month while preserving the product.
+This is the exact failure mode the product architecture is designed to stop.
 
 ## Human-owned decisions
 
