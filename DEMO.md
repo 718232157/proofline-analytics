@@ -1,8 +1,12 @@
 # Proofline Analytics — 可复核文字演示
 
-本文件替代录屏，完整展示 Moneki 作业要求的三问、上下文追问和越界兜底。
-所有金额均由 canonical 数据上的同一个语义 API 计算；证据 ID 会包含本地
-`processing_run_id`，因此每次重新导入后 ID 会变化，但下列黄金值不会变化。
+本文件替代录屏。演示主线不是依次“过三道题”，而是一名运营人员如何从主动经营信号出发，追问具体商品或门店，并在不信任结论时复核数字。三道必问、上下文追问和越界兜底作为这条真实工作流中的可验证样例。
+
+所有金额均由 canonical 数据上的同一个语义 API 计算；证据 ID 会包含本地 `processing_run_id`，因此每次重新导入后 ID 会变化，但下列黄金值不会变化。
+
+## 先体验产品价值
+
+打开首页后先看“可信经营雷达”：它会按影响与紧迫度告诉运营人员本月增长由什么驱动、哪个商品贡献了最大增量、最新营业日是否偏离同星期基线，并给出确定性行动建议。用户再通过右上角助手追问，回答会带着查询范围和证据跳到对应图表，而不是停留在聊天框里。
 
 ## 演示前准备
 
@@ -126,10 +130,23 @@ python scripts/dev.py
 
 ## 自动化证明
 
-当前 60 项测试把上述三问、追问、简称、日期越界、多商品歧义、门店比较和拒答全部跑在完整 CSV
-生成的内存数据库上，并独立调用语义服务断言“查询值 = 引用值 = 回答展示值”。更底层的
-`test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及
-每月总额。CI 在测试覆盖率低于 90% 时失败。
+可先运行专用验证文件。它会对三个核心经营问题分别执行“独立语义查询”和“助手问答”，再断言查询值、引用值和回答展示值完全一致：
+
+```bash
+cd backend
+.venv/Scripts/python -m pytest tests/test_ai_answer_verification.py -vv  # Windows
+# .venv/bin/python -m pytest tests/test_ai_answer_verification.py -vv   # macOS/Linux
+```
+
+终端会明确展示以下三个测试通过：
+
+```text
+test_category_answer_equals_independent_database_query PASSED
+test_product_month_answer_equals_independent_database_query PASSED
+test_aov_trend_answer_equals_independent_database_query PASSED
+```
+
+当前完整测试集共 63 项，还会把上述三问、追问、简称、日期越界、多商品歧义、门店比较和拒答跑在完整 CSV 生成的内存数据库上。更底层的 `test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及每月总额。CI 在测试覆盖率低于 90% 时失败。
 
 ```bash
 cd backend

@@ -659,11 +659,16 @@ h1 {
   border-left: 1px solid #dfe5dc;
   background: #f8faf6;
   box-shadow: -12px 0 36px rgb(21 34 24 / 10%);
+  visibility: hidden;
   transform: translateX(104%);
-  transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 260ms;
 }
 .assistant-drawer.open {
+  visibility: visible;
   transform: translateX(0);
+  transition-delay: 0s;
 }
 @media (min-width: 1051px) {
   .app-shell.assistant-open .main {
