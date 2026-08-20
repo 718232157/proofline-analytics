@@ -9,9 +9,8 @@ from pathlib import Path
 from typing import Any
 
 PORT = int(os.environ.get("PROOFLINE_WARMUP_PORT", "5173"))
-STATUS_FILE = Path(
-    os.environ.get("PROOFLINE_STATUS_FILE", "/tmp/proofline/status.json")
-)
+STATUS_PATH = os.environ.get("PROOFLINE_STATUS_FILE", "/tmp/proofline/status.json")
+STATUS_FILE = Path(STATUS_PATH)
 
 PAGE = """<!doctype html>
 <html lang="zh-CN">
