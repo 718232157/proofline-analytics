@@ -23,15 +23,19 @@ PAGE = """<!doctype html>
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; color: #102018;
       background: radial-gradient(circle at 50% 20%, #f8ffe8 0, #f3f7f2 45%, #edf2ed 100%); }
-    main { width: min(560px, calc(100% - 40px)); padding: 42px; border: 1px solid #dce5dc;
-      border-radius: 28px; background: rgba(255,255,255,.92); box-shadow: 0 24px 80px rgba(16,32,24,.08); }
+    main { width: min(560px, calc(100% - 40px)); padding: 42px;
+      border: 1px solid #dce5dc; border-radius: 28px; background: rgba(255,255,255,.92);
+      box-shadow: 0 24px 80px rgba(16,32,24,.08); }
     .brand { display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 750; }
     .mark { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px;
       color: #baff3f; background: #102018; font-size: 22px; }
-    h1 { margin: 34px 0 12px; font-size: clamp(30px, 6vw, 44px); line-height: 1.12; letter-spacing: -.04em; }
+    h1 { margin: 34px 0 12px; font-size: clamp(30px, 6vw, 44px); line-height: 1.12;
+      letter-spacing: -.04em; }
     p { margin: 0; color: #617067; font-size: 16px; line-height: 1.75; }
-    .progress { height: 8px; margin: 30px 0 18px; overflow: hidden; border-radius: 99px; background: #e9eee9; }
-    .progress::after { content: ""; display: block; width: 42%; height: 100%; border-radius: inherit;
+    .progress { height: 8px; margin: 30px 0 18px; overflow: hidden;
+      border-radius: 99px; background: #e9eee9; }
+    .progress::after { content: ""; display: block; width: 42%; height: 100%;
+      border-radius: inherit;
       background: #93ca20; animation: move 1.5s ease-in-out infinite; }
     #message { color: #314139; font-weight: 650; }
     #detail { margin-top: 8px; font-size: 14px; }
