@@ -1,7 +1,7 @@
 # Proofline 可信分析
 
 [![CI](https://github.com/718232157/proofline-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/718232157/proofline-analytics/actions/workflows/ci.yml)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/718232157/proofline-analytics?quickstart=1)
+[![在线体验](https://img.shields.io/badge/在线体验-打开_Proofline-102018?style=for-the-badge)](https://proofline-analytics-718232157.onrender.com)
 
 **以证据为先，回答那些容不得编造数字的经营问题。**
 
@@ -13,9 +13,9 @@ Moneki 餐饮数据是第一个完整工作空间，但产品能力并未写死�
 
 ## 一键在线体验
 
-点击 README 顶部的 **Open in GitHub Codespaces**：GitHub 会创建隔离环境，按锁文件安装依赖、摄取并清洗原始数据；后端通过健康检查后才会启动并自动打开网页。无需下载仓库、配置数据库或提供模型密钥。初始化若因网络波动、浏览器关闭或休眠中断，下次启动会核验完整性并从断点自动恢复。
+点击 README 顶部的 **在线体验** 即可直接进入 Proofline，无需登录、下载仓库、配置数据库或提供模型密钥。在线版本运行与仓库一致的真实数据管道、SQLite 数据库、治理分析 API 和前端，不是静态截图或预置回答。
 
-首次创建环境通常需要数分钟，且需要登录 GitHub。这个入口运行的是仓库中的真实数据管道、SQLite 数据库和分析工具；未配置外部模型密钥时，仅由确定性编排器组织已经核验的工具结果，不会伪造模型调用。Codespace 停止后不会影响用户本机或其他服务器。
+服务使用 Render 免费实例：连续 15 分钟无人访问后会休眠，下一位用户首次唤醒通常需要约一分钟，Render 会提供加载页；唤醒后可直接使用。容器每次启动都会从仓库中的不可变 CSV 重新摄取、清洗并构建派生数据库，因此免费实例的临时磁盘不会造成源数据或口径丢失。
 
 ## 它创造什么市场价值
 
@@ -116,7 +116,7 @@ frontend/         元数据驱动的 React 分析界面
 workspaces/       领域清单与工作空间专属策略
 data/             任务提供且保持不可变的 Moneki POS 数据
 docs/             架构决策与原始任务说明
-.devcontainer/    Codespaces 一键初始化与自动启动配置
+render.yaml       Render 免费在线服务配置
 AI_USAGE.md       可审计的 AI 辅助开发记录
 DEMO.md           带证据的文字版产品演示
 ```
