@@ -1,6 +1,7 @@
 import json
 
 import httpx
+import pytest
 
 from app.assistant.resolver import IntentResolver, OpenAICompatibleIntentResolver
 
@@ -55,3 +56,26 @@ def test_deterministic_resolver_understands_product_summary_language() -> None:
     assert intent.product == "灌汤包"
     assert intent.date_from is None
     assert intent.date_to is None
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_intent", "expected_product"),
+    [
+        ("三文鱼的营业额", "product_revenue", "三文鱼"),
+        ("三文鱼poke的营业额是多少?", "product_revenue", "三文鱼poke"),
+        ("牛肉的营业额是", "product_revenue", "牛肉"),
+        ("营业额前10的商品是什么?", "product_ranking", None),
+        ("商品销售额排名", "product_ranking", None),
+        ("哪些商品卖得最好?", "product_ranking", None),
+    ],
+)
+def test_deterministic_resolver_supports_common_revenue_language(
+    question: str,
+    expected_intent: str,
+    expected_product: str | None,
+) -> None:
+    intent = IntentResolver().resolve(question)
+
+    assert intent is not None
+    assert intent.name == expected_intent
+    assert intent.product == expected_product

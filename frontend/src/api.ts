@@ -39,7 +39,8 @@ export type AnalyticsQuery = {
 }
 
 export type AnalysisContext = {
-  intent: 'category_leader' | 'product_revenue' | 'aov_trend' | 'store_comparison'
+  intent:
+    'category_leader' | 'product_revenue' | 'product_ranking' | 'aov_trend' | 'store_comparison'
   product: string | null
   date_from: string | null
   date_to: string | null

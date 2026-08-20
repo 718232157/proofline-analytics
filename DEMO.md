@@ -8,18 +8,20 @@
 
 打开首页后先看“可信经营雷达”：它会按影响与紧迫度告诉运营人员本月增长由什么驱动、哪个商品贡献了最大增量、最新营业日是否偏离同星期基线，并给出确定性行动建议。用户再通过右上角助手追问，回答会带着查询范围和证据跳到对应图表，而不是停留在聊天框里。
 
-## 演示前准备
+## 直接在线体验
+
+打开 **[Proofline 在线体验](https://proofline-analytics-718232157.onrender.com)**，无需登录、下载仓库、安装依赖或提供 API key。免费实例闲置后会休眠，首次访问可能需要约一分钟唤醒；页面出现后点击右上角“分析助手”即可按下文复核。
+
+在线版本不是静态页面：Render 容器启动时会重新摄取和清洗仓库内的原始 CSV，随后由同源 FastAPI、SQLite 与 React 应用共同提供看板和问答。`GET /api/health` 会公开当前使用 `deterministic` 还是 `hybrid_llm` 模式，并始终声明数字来源为 `governed_analytics_api`。
+
+## 本地复现（可选）
 
 ```bash
 python scripts/setup.py
 python scripts/dev.py
 ```
 
-打开 `http://localhost:5173`，点击右上角“分析助手”。无需 API key；本地意图解析器
-仍会在运行时创建真实 `AnalyticsQuery` 并查询数据库。配置兼容模型后，模型也只能
-返回 `{intent, product, month}`，不能生成金额。`GET /api/health` 会公开当前使用
-`deterministic` 还是 `hybrid_llm` 模式，并始终声明数字来源为
-`governed_analytics_api`。
+打开 `http://localhost:5173`，点击右上角“分析助手”。无需 API key；确定性解析器仍会在运行时创建真实 `AnalyticsQuery` 并查询数据库。配置兼容模型后，模型也只能返回封闭意图、商品和月份，不能生成金额。
 
 ## 问题一：门店品类 JOIN 与排名
 
@@ -112,6 +114,8 @@ python scripts/dev.py
 - 客单价趋势：滚动到独立的月度客单价图，不再用营业额图冒充联动。
 - 门店比较：滚动到门店经营对比并高亮领先门店。
 
+助手还支持商品营业额的常见自然表达，例如“三文鱼的营业额”“牛肉的销售额是多少”，以及“营业额前10的商品是什么”。商品名称会先与治理后的商品维表做全名或唯一简称核验；商品排行则从同一营业额语义查询中排序，并定位到精确金额表。它不是为某一句话写死的答案。
+
 动作包含强类型 `target`、治理查询和可选 `highlight`，前端不会根据回答文案猜测应该操作哪个图表。
 
 ## 进阶四：可信经营雷达
@@ -146,7 +150,7 @@ test_product_month_answer_equals_independent_database_query PASSED
 test_aov_trend_answer_equals_independent_database_query PASSED
 ```
 
-当前完整测试集共 63 项，还会把上述三问、追问、简称、日期越界、多商品歧义、门店比较和拒答跑在完整 CSV 生成的内存数据库上。更底层的 `test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及每月总额。CI 在测试覆盖率低于 90% 时失败。
+当前完整测试集共 74 项，还会把上述三问、无月份商品营业额、商品前 10、追问、简称、日期越界、多商品歧义、门店比较和拒答跑在完整 CSV 生成的内存数据库上。更底层的 `test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及每月总额。CI 在测试覆盖率低于 90% 时失败。
 
 ```bash
 cd backend

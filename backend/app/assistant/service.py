@@ -64,6 +64,8 @@ class AssistantService:
             )
         if intent.name == "category_leader":
             return self._category_leader(session, workspace_slug, intent)
+        if intent.name == "product_ranking":
+            return self._product_ranking(session, workspace_slug, intent)
         if intent.name == "product_revenue":
             product = self._canonical_product(
                 session,
@@ -251,6 +253,41 @@ class AssistantService:
                 query=query,
                 target="revenue_trend",
                 highlight=intent.product,
+            ),
+        )
+
+    def _product_ranking(
+        self, session: Session, workspace_slug: str, intent: ResolvedIntent
+    ) -> ChatResponse:
+        query = AnalyticsQuery(
+            metric="revenue",
+            group_by=("product",),
+            date_from=intent.date_from,
+            date_to=intent.date_to,
+            limit=500,
+        )
+        result = self.analytics.query(session, workspace_slug, query)
+        leaders = sorted(result.points, key=lambda point: point.value, reverse=True)[:10]
+        if not leaders:
+            return ChatResponse(
+                status="unsupported",
+                answer="当前筛选范围内没有可排名的可信商品营业额数据。",
+                context=intent.context(),
+            )
+        names = "、".join(point.dimensions["product"] for point in leaders)
+        period = f"{intent.date_from.month}月" if intent.date_from else "全部可信记录"
+        leader = leaders[0]
+        leader_display = self._currency(leader.value)
+        return ChatResponse(
+            status="answered",
+            answer=f"{period}的营业额前10商品依次是：{names}。精确金额已定位到商品排名表。",
+            context=intent.context(),
+            citations=(self._citation(result, leader.value, leader.dimensions, leader_display),),
+            chart_action=ChartAction(
+                title=f"{period} · 营业额前10商品",
+                query=query,
+                target="product_ranking",
+                highlight=leader.dimensions["product"],
             ),
         )
 

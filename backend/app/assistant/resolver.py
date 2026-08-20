@@ -83,10 +83,19 @@ class IntentResolver:
                 start, end = self._month_range(2026, month)
                 return ResolvedIntent("store_comparison", date_from=start, date_to=end)
             return ResolvedIntent("store_comparison")
-        if month and any(word in normalized for word in ("卖了多少", "营业额", "销售额")):
+        if self._is_product_ranking_question(normalized):
+            if month:
+                start, end = self._month_range(2026, month)
+                return ResolvedIntent("product_ranking", date_from=start, date_to=end)
+            return ResolvedIntent("product_ranking")
+        if self._is_external_or_predictive_question(normalized):
+            return None
+        if any(word in normalized for word in ("卖了多少", "多少钱", "营业额", "销售额")):
             product = self._product(normalized)
-            start, end = self._month_range(2026, month)
-            return ResolvedIntent("product_revenue", product, start, end)
+            if month:
+                start, end = self._month_range(2026, month)
+                return ResolvedIntent("product_revenue", product, start, end)
+            return ResolvedIntent("product_revenue", product)
         if any(word in normalized for word in ("相关数据", "商品表现", "销售情况", "卖得怎么样")):
             product = self._summary_product(normalized)
             if product:
@@ -108,6 +117,25 @@ class IntentResolver:
         return len(question) <= 12 or any(token in question for token in ("那", "呢", "改成"))
 
     @staticmethod
+    def _is_product_ranking_question(question: str) -> bool:
+        has_product_scope = "商品" in question or "产品" in question
+        has_ranking_language = any(
+            token in question
+            for token in ("前10", "前十", "排名", "排行", "榜单", "最高", "最多", "最好")
+        )
+        has_revenue_language = any(
+            token in question for token in ("营业额", "销售额", "卖得", "卖的")
+        )
+        return has_product_scope and has_ranking_language and has_revenue_language
+
+    @staticmethod
+    def _is_external_or_predictive_question(question: str) -> bool:
+        return any(
+            token in question
+            for token in ("天气", "预测", "影响", "利润", "成本", "未来", "下个月", "明年")
+        )
+
+    @staticmethod
     def _product(question: str) -> str | None:
         product = question.strip("？?。！!")
         for prefix in ("请问", "帮我看一下", "帮我看看", "看一下", "查一下"):
@@ -121,10 +149,15 @@ class IntentResolver:
         for phrase in (
             "的营业额是多少",
             "营业额是多少",
+            "的营业额是",
+            "营业额是",
             "的销售额是多少",
             "销售额是多少",
+            "的销售额是",
+            "销售额是",
             "卖了多少钱",
             "卖了多少",
+            "多少钱",
             "的营业额",
             "营业额",
             "的销售额",
@@ -187,7 +220,7 @@ class OpenAICompatibleIntentResolver:
                         "role": "system",
                         "content": (
                             "Map the user's analytics question to JSON only. Allowed intents: "
-                            "category_leader, product_revenue, aov_trend, "
+                            "category_leader, product_revenue, product_ranking, aov_trend, "
                             "store_comparison, or null. "
                             "Return {intent, product, month}. Never calculate or invent numbers."
                         ),
