@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: proofline-analytics-718232157
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: FRONTEND_ORIGINS
+        value: ""
