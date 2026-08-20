@@ -5,7 +5,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.analytics.models import AnalyticsQuery
 
-IntentName = Literal["category_leader", "product_revenue", "aov_trend", "store_comparison"]
+IntentName = Literal[
+    "category_leader",
+    "product_revenue",
+    "product_ranking",
+    "aov_trend",
+    "store_comparison",
+]
 ChartTarget = Literal[
     "overview",
     "revenue_trend",

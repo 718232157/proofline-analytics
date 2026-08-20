@@ -196,6 +196,71 @@ def test_product_summary_uses_the_full_governed_range(assistant_session: Session
     assert response.chart_action.query.filters == {"product": ("灌汤包",)}
 
 
+@pytest.mark.parametrize(
+    ("question", "canonical_product", "expected_display", "expected_value"),
+    [
+        ("三文鱼的营业额", "三文鱼poke", "¥37,316.00", 3_731_600),
+        ("三文鱼poke的营业额是多少", "三文鱼poke", "¥37,316.00", 3_731_600),
+        ("牛肉的营业额是", "牛肉poke", "¥39,690.00", 3_969_000),
+    ],
+)
+def test_product_revenue_without_a_month_uses_the_full_governed_range(
+    assistant_session: Session,
+    question: str,
+    canonical_product: str,
+    expected_display: str,
+    expected_value: int,
+) -> None:
+    response = AssistantService(WorkspaceRegistry(PROJECT_ROOT)).answer(
+        assistant_session,
+        "moneki",
+        ChatRequest(question=question),
+    )
+
+    assert response.status == "answered"
+    assert response.context is not None
+    assert response.context.product == canonical_product
+    assert expected_display in response.answer
+    assert response.citations[0].value == expected_value
+    assert response.chart_action is not None
+
+
+def test_product_ranking_returns_the_governed_top_ten(assistant_session: Session) -> None:
+    response = AssistantService(WorkspaceRegistry(PROJECT_ROOT)).answer(
+        assistant_session,
+        "moneki",
+        ChatRequest(question="营业额前10的商品是什么？"),
+    )
+
+    assert response.status == "answered"
+    assert response.answer == (
+        "全部可信记录的营业额前10商品依次是：牛肉poke、三文鱼poke、鸡肉poke、"
+        "豚骨拉面、味增拉面、照烧三明治、吞拿鱼三明治、灌汤包、照烧鸡饭、小笼包。"
+        "精确金额已定位到商品排名表。"
+    )
+    assert response.citations[0].dimensions == {"product": "牛肉poke"}
+    assert response.citations[0].value == 3_969_000
+    assert response.chart_action is not None
+    assert response.chart_action.target == "product_ranking"
+    assert response.chart_action.highlight == "牛肉poke"
+
+
+def test_product_ranking_honors_a_requested_month(assistant_session: Session) -> None:
+    response = AssistantService(WorkspaceRegistry(PROJECT_ROOT)).answer(
+        assistant_session,
+        "moneki",
+        ChatRequest(question="六月商品营业额前10名"),
+    )
+
+    assert response.status == "answered"
+    assert response.answer.startswith("6月的营业额前10商品依次是：")
+    assert response.context is not None
+    assert response.context.date_from == date(2026, 6, 1)
+    assert response.context.date_to == date(2026, 6, 30)
+    assert response.chart_action is not None
+    assert response.chart_action.query.date_from == date(2026, 6, 1)
+
+
 def test_store_comparison_uses_governed_store_metrics(assistant_session: Session) -> None:
     response = AssistantService(WorkspaceRegistry(PROJECT_ROOT)).answer(
         assistant_session,
