@@ -29,6 +29,9 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: python -m json.tool ../.devcontainer/devcontainer.json >/dev/null
       - run: bash -n ../.devcontainer/bootstrap.sh ../.devcontainer/start.sh
+      - run: python -m py_compile ../.devcontainer/warmup.py
+      - run: ruff format --check ../.devcontainer/warmup.py
+      - run: ruff check ../.devcontainer/warmup.py
       - run: ruff format --check app tests ../scripts
       - run: ruff check app tests ../scripts
       - run: mypy app
