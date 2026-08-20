@@ -27,6 +27,8 @@ jobs:
           cache: pip
           cache-dependency-path: backend/pyproject.toml
       - run: pip install -e ".[dev]"
+      - run: python -m json.tool ../.devcontainer/devcontainer.json >/dev/null
+      - run: bash -n ../.devcontainer/bootstrap.sh ../.devcontainer/start.sh
       - run: ruff format --check app tests ../scripts
       - run: ruff check app tests ../scripts
       - run: mypy app
