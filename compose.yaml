@@ -1,0 +1,17 @@
+services:
+  proofline:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8000"
+    volumes:
+      - proofline-data:/app/backend/var
+    environment:
+      APP_ENV: production
+      FRONTEND_ORIGINS: ""
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-v4-flash}
+
+volumes:
+  proofline-data:

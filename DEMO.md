@@ -1,8 +1,12 @@
 # Proofline Analytics — 可复核文字演示
 
-本文件替代录屏，完整展示 Moneki 作业要求的三问、上下文追问和越界兜底。
-所有金额均由 canonical 数据上的同一个语义 API 计算；证据 ID 会包含本地
-`processing_run_id`，因此每次重新导入后 ID 会变化，但下列黄金值不会变化。
+本文件替代录屏。演示主线不是依次“过三道题”，而是一名运营人员如何从主动经营信号出发，追问具体商品或门店，并在不信任结论时复核数字。三道必问、上下文追问和越界兜底作为这条真实工作流中的可验证样例。
+
+所有金额均由 canonical 数据上的同一个语义 API 计算；证据 ID 会包含本地 `processing_run_id`，因此每次重新导入后 ID 会变化，但下列黄金值不会变化。
+
+## 先体验产品价值
+
+打开首页后先看“可信经营雷达”：它会按影响与紧迫度告诉运营人员本月增长由什么驱动、哪个商品贡献了最大增量、最新营业日是否偏离同星期基线，并给出确定性行动建议。用户再通过右上角助手追问，回答会带着查询范围和证据跳到对应图表，而不是停留在聊天框里。
 
 ## 演示前准备
 
@@ -11,7 +15,7 @@ python scripts/setup.py
 python scripts/dev.py
 ```
 
-打开 `http://localhost:5173`，点击左侧“分析助手”。无需 API key；本地意图解析器
+打开 `http://localhost:5173`，点击右上角“分析助手”。无需 API key；本地意图解析器
 仍会在运行时创建真实 `AnalyticsQuery` 并查询数据库。配置兼容模型后，模型也只能
 返回 `{intent, product, month}`，不能生成金额。`GET /api/health` 会公开当前使用
 `deterministic` 还是 `hybrid_llm` 模式，并始终声明数字来源为
@@ -101,12 +105,48 @@ python scripts/dev.py
 
 该响应状态为 `unsupported`，`citations=[]`，也不会生成图表动作。
 
+## 进阶三：四种精确图表动作
+
+- 品类第一：滚动到“门店品类贡献”，高亮真实领先品类。
+- 商品月份：同步日期与商品筛选，滚动到“每日营业额趋势”。
+- 客单价趋势：滚动到独立的月度客单价图，不再用营业额图冒充联动。
+- 门店比较：滚动到门店经营对比并高亮领先门店。
+
+动作包含强类型 `target`、治理查询和可选 `highlight`，前端不会根据回答文案猜测应该操作哪个图表。
+
+## 进阶四：可信经营雷达
+
+首屏主动展示三类确定性信号：
+
+1. 最新营业日与最近四个同星期日中位数的差异，避免把周末高峰误判为异常。
+2. 月度营业额变化，以及订单量和客单价两部分驱动。
+3. 相比上月贡献最大金额变化的商品。
+
+每条事项都包含影响金额、优先级、规则生成的行动建议和“查看依据”入口。建议只使用已查询的经营事实，不会让模型凭常识生成库存结论。
+
+## 进阶五：流式处理与门店对比
+
+助手通过 SSE 依次返回“识别问题”“查询治理指标”“数字核验完成”和最终结构化结果，展示真实处理阶段而非模拟打字。询问“五家门店经营表现有什么差异？”时，回答会引用营业额与客单价两份治理结果，并定位到五家门店同口径对比表。
+
 ## 自动化证明
 
-`backend/tests/test_assistant_service.py` 把上述三问、追问和拒答全部跑在完整 CSV
-生成的内存数据库上，直接断言回答中的 evidence value。更底层的
-`test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及
-每月总额。CI 在测试覆盖率低于 90% 时失败。
+可先运行专用验证文件。它会对三个核心经营问题分别执行“独立语义查询”和“助手问答”，再断言查询值、引用值和回答展示值完全一致：
+
+```bash
+cd backend
+.venv/Scripts/python -m pytest tests/test_ai_answer_verification.py -vv  # Windows
+# .venv/bin/python -m pytest tests/test_ai_answer_verification.py -vv   # macOS/Linux
+```
+
+终端会明确展示以下三个测试通过：
+
+```text
+test_category_answer_equals_independent_database_query PASSED
+test_product_month_answer_equals_independent_database_query PASSED
+test_aov_trend_answer_equals_independent_database_query PASSED
+```
+
+当前完整测试集共 63 项，还会把上述三问、追问、简称、日期越界、多商品歧义、门店比较和拒答跑在完整 CSV 生成的内存数据库上。更底层的 `test_moneki_processing.py` 锁定 11,869 条可信记录、78 条去重、184 条隔离以及每月总额。CI 在测试覆盖率低于 90% 时失败。
 
 ```bash
 cd backend

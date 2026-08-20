@@ -1,0 +1,26 @@
+{
+  "name": "Proofline 可信分析",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    }
+  },
+  "containerEnv": {
+    "VITE_API_BASE_URL": "",
+    "VITE_WORKSPACE_SLUG": "moneki"
+  },
+  "postCreateCommand": "sudo corepack enable && corepack prepare pnpm@11.19.0 --activate && python scripts/setup.py",
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [5173, 8000],
+  "portsAttributes": {
+    "5173": {
+      "label": "Proofline 产品体验",
+      "onAutoForward": "openPreview"
+    },
+    "8000": {
+      "label": "Proofline API",
+      "onAutoForward": "silent"
+    }
+  }
+}

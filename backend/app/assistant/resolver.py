@@ -34,6 +34,8 @@ MONTHS = {
     "十二月": 12,
     "12月": 12,
 }
+MONTH_TOKENS = tuple(sorted(MONTHS, key=len, reverse=True))
+MONTH_PATTERN = "(?:" + "|".join(re.escape(token) for token in MONTH_TOKENS) + ")"
 
 
 @dataclass(frozen=True)
@@ -70,12 +72,21 @@ class IntentResolver:
         if "客单价" in normalized and any(word in normalized for word in ("趋势", "涨", "跌")):
             return ResolvedIntent("aov_trend")
         if "品类" in normalized and any(word in normalized for word in ("最高", "最多", "第一")):
+            if month:
+                start, end = self._month_range(2026, month)
+                return ResolvedIntent("category_leader", date_from=start, date_to=end)
             return ResolvedIntent("category_leader")
+        if "门店" in normalized and any(
+            word in normalized for word in ("对比", "比较", "哪家", "排名", "差异")
+        ):
+            if month:
+                start, end = self._month_range(2026, month)
+                return ResolvedIntent("store_comparison", date_from=start, date_to=end)
+            return ResolvedIntent("store_comparison")
         if month and any(word in normalized for word in ("卖了多少", "营业额", "销售额")):
             product = self._product(normalized)
-            if product:
-                start, end = self._month_range(2026, month)
-                return ResolvedIntent("product_revenue", product, start, end)
+            start, end = self._month_range(2026, month)
+            return ResolvedIntent("product_revenue", product, start, end)
         if any(word in normalized for word in ("相关数据", "商品表现", "销售情况", "卖得怎么样")):
             product = self._summary_product(normalized)
             if product:
@@ -84,7 +95,7 @@ class IntentResolver:
 
     @staticmethod
     def _month(question: str) -> int | None:
-        return next((number for token, number in MONTHS.items() if token in question), None)
+        return next((MONTHS[token] for token in MONTH_TOKENS if token in question), None)
 
     @staticmethod
     def _month_range(year: int, month: int) -> tuple[date, date]:
@@ -98,14 +109,30 @@ class IntentResolver:
 
     @staticmethod
     def _product(question: str) -> str | None:
-        match = re.search(
-            r"(?:请问)?(.+?)(?:一月|二月|三月|四月|五月|六月|七月|八月|九月|十月|十一月|十二月|\d{1,2}月)",
-            question,
+        product = question.strip("？?。！!")
+        for prefix in ("请问", "帮我看一下", "帮我看看", "看一下", "查一下"):
+            product = product.removeprefix(prefix)
+        product = re.sub(
+            rf"(?:(?:今年|本年)|(?:20\d{{2}}年))?{MONTH_PATTERN}(?:份)?",
+            "",
+            product,
+            count=1,
         )
-        if not match:
-            return None
-        product = match.group(1).removeprefix("那").removeprefix("查一下")
-        return product or None
+        for phrase in (
+            "的营业额是多少",
+            "营业额是多少",
+            "的销售额是多少",
+            "销售额是多少",
+            "卖了多少钱",
+            "卖了多少",
+            "的营业额",
+            "营业额",
+            "的销售额",
+            "销售额",
+        ):
+            product = product.replace(phrase, "")
+        product = product.strip("，,：:；;的在于")
+        return product.removeprefix("那") or None
 
     @staticmethod
     def _summary_product(question: str) -> str | None:
@@ -160,7 +187,8 @@ class OpenAICompatibleIntentResolver:
                         "role": "system",
                         "content": (
                             "Map the user's analytics question to JSON only. Allowed intents: "
-                            "category_leader, product_revenue, aov_trend, or null. "
+                            "category_leader, product_revenue, aov_trend, "
+                            "store_comparison, or null. "
                             "Return {intent, product, month}. Never calculate or invent numbers."
                         ),
                     },

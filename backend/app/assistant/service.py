@@ -1,3 +1,6 @@
+import re
+from datetime import date
+
 from sqlalchemy.orm import Session
 
 from app.analytics import AnalyticsQuery, AnalyticsService, MetricResult
@@ -38,26 +41,178 @@ class AssistantService:
                     "商品、营业额、订单数和客单价回答；不会用常识补造数据。"
                 ),
             )
+        if intent.name != "product_revenue" and self._is_outside_coverage(
+            session, workspace_slug, intent
+        ):
+            coverage = self.analytics.date_range(session, workspace_slug)
+            if coverage is None:
+                return ChatResponse(
+                    status="unsupported",
+                    answer="当前还没有已进入分析层的可信日期数据。",
+                    context=intent.context(),
+                )
+            assert intent.date_from is not None
+            coverage_start, coverage_end = coverage
+            return ChatResponse(
+                status="unsupported",
+                answer=(
+                    f"当前可信数据仅覆盖{self._display_date(coverage_start)}至"
+                    f"{self._display_date(coverage_end)}，无法回答"
+                    f"{intent.date_from.month}月的数据。"
+                ),
+                context=intent.context(),
+            )
         if intent.name == "category_leader":
             return self._category_leader(session, workspace_slug, intent)
         if intent.name == "product_revenue":
+            product = self._canonical_product(
+                session,
+                workspace_slug,
+                request.question,
+                intent.product,
+            )
+            if product is None:
+                return ChatResponse(
+                    status="unsupported",
+                    answer=(
+                        "没有识别到唯一且已收录的商品。请只写一个可唯一识别的商品名称，"
+                        "我会用商品维表核对全名或唯一简称，不会猜测或混合多个商品。"
+                    ),
+                )
+            intent = ResolvedIntent(
+                name=intent.name,
+                product=product,
+                date_from=intent.date_from,
+                date_to=intent.date_to,
+            )
+            if intent.date_from is not None and intent.date_to is not None:
+                coverage = self.analytics.date_range(session, workspace_slug)
+                if coverage is not None:
+                    coverage_start, coverage_end = coverage
+                    if intent.date_to < coverage_start or intent.date_from > coverage_end:
+                        return ChatResponse(
+                            status="unsupported",
+                            answer=(
+                                f"已识别商品“{product}”，但当前可信数据仅覆盖"
+                                f"{self._display_date(coverage_start)}至"
+                                f"{self._display_date(coverage_end)}，"
+                                f"无法回答{intent.date_from.month}月的数据。"
+                            ),
+                            context=intent.context(),
+                        )
             return self._product_revenue(session, workspace_slug, intent)
-        return self._aov_trend(session, workspace_slug, intent)
+        if intent.name == "aov_trend":
+            return self._aov_trend(session, workspace_slug, intent)
+        return self._store_comparison(session, workspace_slug, intent)
+
+    def _canonical_product(
+        self,
+        session: Session,
+        workspace_slug: str,
+        question: str,
+        parsed_product: str | None,
+    ) -> str | None:
+        """Resolve products against governed dimension values instead of guessed text spans."""
+        catalog = self.analytics.query(
+            session,
+            workspace_slug,
+            AnalyticsQuery(metric="revenue", group_by=("product",), limit=500),
+        )
+        names = tuple(point.dimensions["product"] for point in catalog.points)
+        normalized_question = self._normalize_entity_text(question)
+        matches = self._catalog_entity_matches(normalized_question, names)
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            return None
+
+        if parsed_product:
+            parsed_key = self._normalize_entity_text(parsed_product)
+            exact_matches = [
+                name for name in names if self._normalize_entity_text(name) == parsed_key
+            ]
+            if len(exact_matches) == 1:
+                return exact_matches[0]
+            if len(parsed_key) >= 2:
+                partial_matches = [
+                    name for name in names if parsed_key in self._normalize_entity_text(name)
+                ]
+                if len(partial_matches) == 1:
+                    return partial_matches[0]
+        return None
+
+    @classmethod
+    def _catalog_entity_matches(cls, normalized_question: str, names: tuple[str, ...]) -> list[str]:
+        """Match full names and catalog-unique substrings without guessing across entities."""
+        normalized_names = {name: cls._normalize_entity_text(name) for name in names}
+        alias_owners: dict[str, set[str]] = {}
+        for name, key in normalized_names.items():
+            for start in range(len(key)):
+                for end in range(start + 2, len(key) + 1):
+                    alias_owners.setdefault(key[start:end], set()).add(name)
+
+        matched: list[str] = []
+        for name in names:
+            if any(
+                alias in normalized_question and owners == {name}
+                for alias, owners in alias_owners.items()
+            ):
+                matched.append(name)
+        return matched
+
+    @staticmethod
+    def _normalize_entity_text(value: str) -> str:
+        return re.sub(r"[\W_]+", "", value, flags=re.UNICODE).casefold()
+
+    @staticmethod
+    def _display_date(value: date) -> str:
+        return f"{value.year}年{value.month}月{value.day}日"
+
+    def _is_outside_coverage(
+        self,
+        session: Session,
+        workspace_slug: str,
+        intent: ResolvedIntent,
+    ) -> bool:
+        if intent.date_from is None or intent.date_to is None:
+            return False
+        coverage = self.analytics.date_range(session, workspace_slug)
+        if coverage is None:
+            return True
+        coverage_start, coverage_end = coverage
+        return intent.date_to < coverage_start or intent.date_from > coverage_end
 
     def _category_leader(
         self, session: Session, workspace_slug: str, intent: ResolvedIntent
     ) -> ChatResponse:
-        query = AnalyticsQuery(metric="revenue", group_by=("store_category",))
+        query = AnalyticsQuery(
+            metric="revenue",
+            group_by=("store_category",),
+            date_from=intent.date_from,
+            date_to=intent.date_to,
+        )
         result = self.analytics.query(session, workspace_slug, query)
+        if not result.points:
+            return ChatResponse(
+                status="unsupported",
+                answer="当前筛选范围内没有可比较的可信门店品类数据。",
+                context=intent.context(),
+            )
         leader = max(result.points, key=lambda point: point.value)
         name = leader.dimensions["store_category"]
         display = self._currency(leader.value)
+        period = f"{intent.date_from.month}月" if intent.date_from else "当前可信范围内"
         return ChatResponse(
             status="answered",
-            answer=f"营业额最高的门店品类是{name}，净营业额为{display}。",
+            answer=f"{period}营业额最高的门店品类是{name}，净营业额为{display}。",
             context=intent.context(),
             citations=(self._citation(result, leader.value, leader.dimensions, display),),
-            chart_action=ChartAction(title="门店品类营业额", query=query),
+            chart_action=ChartAction(
+                title="门店品类营业额",
+                query=query,
+                target="category_contribution",
+                highlight=name,
+            ),
         )
 
     def _product_revenue(
@@ -91,7 +246,12 @@ class AssistantService:
             answer=answer,
             context=intent.context(),
             citations=(self._citation(result, value, {}, display),),
-            chart_action=ChartAction(title=title, query=query),
+            chart_action=ChartAction(
+                title=title,
+                query=query,
+                target="revenue_trend",
+                highlight=intent.product,
+            ),
         )
 
     def _aov_trend(
@@ -120,7 +280,71 @@ class AssistantService:
                 self._citation(result, previous.value, previous.dimensions, previous_display),
                 self._citation(result, latest.value, latest.dimensions, latest_display),
             ),
-            chart_action=ChartAction(title="月度客单价趋势", query=query),
+            chart_action=ChartAction(
+                title="月度客单价趋势",
+                query=query,
+                target="aov_trend",
+            ),
+        )
+
+    def _store_comparison(
+        self, session: Session, workspace_slug: str, intent: ResolvedIntent
+    ) -> ChatResponse:
+        revenue_query = AnalyticsQuery(
+            metric="revenue",
+            group_by=("store",),
+            date_from=intent.date_from,
+            date_to=intent.date_to,
+        )
+        aov_query = AnalyticsQuery(
+            metric="average_order_value",
+            group_by=("store",),
+            date_from=intent.date_from,
+            date_to=intent.date_to,
+        )
+        revenue = self.analytics.query(session, workspace_slug, revenue_query)
+        aov = self.analytics.query(session, workspace_slug, aov_query)
+        if not revenue.points:
+            return ChatResponse(status="unsupported", answer="当前没有可比较的可信门店数据。")
+        revenue_leader = max(revenue.points, key=lambda point: point.value)
+        aov_by_store = {point.dimensions["store"]: point for point in aov.points}
+        store = revenue_leader.dimensions["store"]
+        leader_aov = aov_by_store.get(store)
+        if leader_aov is None:
+            return ChatResponse(
+                status="unsupported",
+                answer="当前门店数据缺少可核验的客单价，暂不生成门店比较结论。",
+                context=intent.context(),
+            )
+        period = f"{intent.date_from.month}月" if intent.date_from else "当前可信范围内"
+        return ChatResponse(
+            status="answered",
+            answer=(
+                f"{period}共有{len(revenue.points)}家门店。净营业额最高的是{store}，"
+                f"为{self._currency(revenue_leader.value)}，客单价为"
+                f"{self._currency(leader_aov.value)}；完整差异已定位到门店对比视图。"
+            ),
+            context=intent.context(),
+            citations=(
+                self._citation(
+                    revenue,
+                    revenue_leader.value,
+                    revenue_leader.dimensions,
+                    self._currency(revenue_leader.value),
+                ),
+                self._citation(
+                    aov,
+                    leader_aov.value,
+                    leader_aov.dimensions,
+                    self._currency(leader_aov.value),
+                ),
+            ),
+            chart_action=ChartAction(
+                title="门店经营对比",
+                query=revenue_query,
+                target="store_comparison",
+                highlight=store,
+            ),
         )
 
     @staticmethod

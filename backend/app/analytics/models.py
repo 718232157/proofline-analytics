@@ -69,3 +69,7 @@ class SemanticProvider(Protocol):
         primitive_metrics: tuple[MetricDefinition, ...],
         query: AnalyticsQuery,
     ) -> list[PrimitiveAggregate]: ...
+
+    def date_range(
+        self, session: Session, manifest: WorkspaceManifest
+    ) -> tuple[date, date] | None: ...
