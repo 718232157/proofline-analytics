@@ -10,13 +10,13 @@
     "VITE_API_BASE_URL": "",
     "VITE_WORKSPACE_SLUG": "moneki"
   },
-  "postCreateCommand": "sudo corepack enable && corepack prepare pnpm@11.19.0 --activate && python scripts/setup.py",
+  "postCreateCommand": "bash .devcontainer/bootstrap.sh",
   "postStartCommand": "bash .devcontainer/start.sh",
   "forwardPorts": [5173, 8000],
   "portsAttributes": {
     "5173": {
       "label": "Proofline 产品体验",
-      "onAutoForward": "openPreview"
+      "onAutoForward": "openBrowser"
     },
     "8000": {
       "label": "Proofline API",
